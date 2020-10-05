@@ -2,56 +2,47 @@ import pandas as pd
 
 metadata = pd.read_csv('KaDo.csv', low_memory=False, nrows=500000)
 
+# Score definition: Number of client that buy the article at least twice
+def getScoreForLibelleDF():
+    # Table of all "CLI_ID", "LIBELLE" possible then counting the "NB_BUY" for each
+    # table columns : CLI_ID, LIBELLE, NB_BUY
+    cliId_libelle =  metadata[["CLI_ID", "LIBELLE"]].copy().groupby(["CLI_ID", "LIBELLE"]).size().to_frame(name = 'NB_BUY').sort_values(by=['NB_BUY'])
 
-def printScoreDF():
-    cliId_libelle =  metadata[["CLI_ID", "LIBELLE"]].copy().groupby(["CLI_ID", "LIBELLE"]).size().to_frame(name = 'size').reset_index().sort_values(by=['size'])
-    # decrement size colum
-    cliId_libelle['size'] -= 1
-    # replace nb of buied an item by client to 1
-    cliId_libelle["size"].mask(cliId_libelle["size"] >= 1, 1)
-    # count all client 
-    print(cliId_libelle.groupby(["LIBELLE"]).size().to_frame(name = 'SCORE').reset_index().sort_values(by=['SCORE']))
+    # decrement size colum to see what item was buy twice
+    cliId_libelle['NB_BUY'] -= 1
 
-printScoreDF()
+    # replace nb of buyed an item by client to 1
+    cliId_libelle["NB_BUY"].mask(cliId_libelle["NB_BUY"] >= 1, 1)
+
+    # count all client that bought at least twice the product
+    # table columns: LIBELLE, SCORE
+    return cliId_libelle.groupby(["LIBELLE"]).size().to_frame(name = 'SCORE').sort_values(by=['SCORE'], ascending=False).reset_index()
+
+scoreTable = getScoreForLibelleDF()
+
+def getUniversLibelleScoreDF():
+    libelleScore = getScoreForLibelleDF().sort_values(by=['LIBELLE'])
+    universLibelle = metadata[["UNIVERS", "LIBELLE"]].copy().groupby(["UNIVERS", "LIBELLE"]).size().reset_index().sort_values(by=['LIBELLE'])
+    return pd.merge(universLibelle[['LIBELLE', 'UNIVERS']], libelleScore[['LIBELLE', 'SCORE']], on=['LIBELLE'], how='outer').sort_values(by=['SCORE'], ascending=False).reset_index()[["LIBELLE", "UNIVERS", "SCORE"]]
+
+print(getUniversLibelleScoreDF())
+
+# print(metadata)
+# print(scoreTable)
+
 
 def printMeanPriceForLibelle():
     print(metadata[["LIBELLE", "PRIX_NET"]].groupby(["LIBELLE"])["PRIX_NET"].mean().sort_values())
 
-def simple_count():
+def printBasicData():
     print(metadata.head(1))
-    print()
-    print(metadata[["PRIX_NET", "LIBELLE"]].copy().groupby(["LIBELLE", "PRIX_NET"]).size())
     print()
     print(len(metadata["LIBELLE"].value_counts(dropna=False)))
     print()
     print(len(metadata["CLI_ID"].value_counts(dropna=False)))
-    print()
-    print(metadata["LIBELLE"].value_counts(dropna=False))
-    print()
-    print(metadata["LIBELLE"].value_counts(dropna=False)["FAP PDRE MAUVE CHRYSTAL  2G LUMIN 4  VPM"])
-    print()
-    print(metadata["CLI_ID"].value_counts(dropna=False))
     print()
     print(len(metadata["UNIVERS"].value_counts(dropna=False)))
     print()
     print(len(metadata["MAILLE"].value_counts(dropna=False)))
     print()
     print(len(metadata["FAMILLE"].value_counts(dropna=False)))
-    print()
-    print(metadata["MOIS_VENTE"].value_counts(dropna=False))
-
-
-# occby(user and label) = size
-#   |
-#   |
-#   |
-#   |         label ==> same prix ?
-#   |           |
-#   |           |
-#   |           |
-#   v           v
-# (size - 1 + prix) / prix
-#   |
-#   |
-#   v
-# score | label
