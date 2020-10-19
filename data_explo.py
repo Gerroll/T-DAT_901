@@ -1,6 +1,40 @@
 import pandas as pd
 
+from enum import Enum
+
+class Category(Enum):
+    FAMILLE = "FAMILLE"
+    MAILLE = "MAILLE"
+    UNIVERS = "UNIVERS"
+
+
+class Column(Enum):
+    TICKET_ID = "TICKET_ID"
+    MOIS_VENTE = "MOIS_VENTE"
+    PRIX_NET = "PRIX_NET"
+    FAMILLE = "FAMILLE"
+    UNIVERS = "UNIVERS"
+    MAILLE = "MAILLE"
+    LIBELLE = "LIBELLE"
+    CLI_ID = "CLI_ID"
+
+
+
 metadata = pd.read_csv('KaDo.csv', low_memory=False, nrows=500000)
+
+# just for the sick of it
+def printBasicData():
+    print(metadata.head(1))
+    print()
+    print(len(metadata["LIBELLE"].value_counts(dropna=False)))
+    print()
+    print(len(metadata["CLI_ID"].value_counts(dropna=False)))
+    print()
+    print(len(metadata["UNIVERS"].value_counts(dropna=False)))
+    print()
+    print(len(metadata["MAILLE"].value_counts(dropna=False)))
+    print()
+    print(len(metadata["FAMILLE"].value_counts(dropna=False)))
 
 # Score definition: Number of client that buy the article at least twice
 def getScoreForLibelleDF():
@@ -18,29 +52,35 @@ def getScoreForLibelleDF():
     # table columns: LIBELLE, SCORE
     return cliId_libelle.groupby(["LIBELLE"]).size().to_frame(name = 'SCORE').sort_values(by=['SCORE'], ascending=False).reset_index()
 
-def getLibelleScoreDF():
+
+#
+#  return a dataFrame
+#  table columns: FAMILLE, MAILLE, UNIVERS, LIBELLE, SCORE
+#
+def getLibelleScoreDFWithCategories():
     libelleScore = getScoreForLibelleDF().sort_values(by=['LIBELLE'])
     universLibelle = metadata[['FAMILLE', 'MAILLE', 'UNIVERS', 'LIBELLE']].copy().groupby(['FAMILLE', 'MAILLE', 'UNIVERS', 'LIBELLE']).size().reset_index().sort_values(by=['LIBELLE'])
     return pd.merge(universLibelle[['FAMILLE', 'MAILLE', 'UNIVERS', 'LIBELLE']], libelleScore[['LIBELLE', 'SCORE']], on=['LIBELLE'], how='outer').sort_values(by=['SCORE'], ascending=False).reset_index()[['FAMILLE', 'MAILLE', 'UNIVERS', 'LIBELLE', 'SCORE']]
 
-print(getLibelleScoreDF())
+def getFirstLineLibelleOfSpecificCategory(libelleScoreDFWithCategories, category: Category, nameCategory: str):
+    return libelleScoreDFWithCategories.loc[libelleScoreDFWithCategories[category.name] == nameCategory][:1]
 
-# print(metadata)
-# print(scoreTable)
+def getListOfLibelleOfTheClientDidNotBuy():
+    pass
 
+# return a list of string that represent buying item of one client
+def getListOfLibelleOfTheClientDidBuy(client_id):
+    df = metadata.copy()
+    df.loc[df[Column.CLI_ID.name] == client_id]
+    pass
 
-def printMeanPriceForLibelle():
-    print(metadata[["LIBELLE", "PRIX_NET"]].groupby(["LIBELLE"])["PRIX_NET"].mean().sort_values())
+print(metadata[:3])
 
-def printBasicData():
-    print(metadata.head(1))
-    print()
-    print(len(metadata["LIBELLE"].value_counts(dropna=False)))
-    print()
-    print(len(metadata["CLI_ID"].value_counts(dropna=False)))
-    print()
-    print(len(metadata["UNIVERS"].value_counts(dropna=False)))
-    print()
-    print(len(metadata["MAILLE"].value_counts(dropna=False)))
-    print()
-    print(len(metadata["FAMILLE"].value_counts(dropna=False)))
+getListOfLibelleOfTheClientDidBuy("1490281")
+
+# print(getLibelleScoreDFWithCategories()[:5])
+
+# libelleScoreDFWithCategories = getLibelleScoreDFWithCategories()
+# print(getFirstLineLibelleOfSpecificCategory(libelleScoreDFWithCategories, Category.FAMILLE, "MAQUILLAGE"))
+# print(getFirstLineLibelleOfSpecificCategory(libelleScoreDFWithCategories, Category.MAILLE, "CORPS_HYDRA_NOURRI_ET_SOINS"))
+# print(getFirstLineLibelleOfSpecificCategory(libelleScoreDFWithCategories, Category.UNIVERS, "VIS_DEMAQ BLEUET"))
