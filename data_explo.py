@@ -18,14 +18,12 @@ def getScoreForLibelleDF():
     # table columns: LIBELLE, SCORE
     return cliId_libelle.groupby(["LIBELLE"]).size().to_frame(name = 'SCORE').sort_values(by=['SCORE'], ascending=False).reset_index()
 
-scoreTable = getScoreForLibelleDF()
-
-def getUniversLibelleScoreDF():
+def getLibelleScoreDF():
     libelleScore = getScoreForLibelleDF().sort_values(by=['LIBELLE'])
-    universLibelle = metadata[["UNIVERS", "LIBELLE"]].copy().groupby(["UNIVERS", "LIBELLE"]).size().reset_index().sort_values(by=['LIBELLE'])
-    return pd.merge(universLibelle[['LIBELLE', 'UNIVERS']], libelleScore[['LIBELLE', 'SCORE']], on=['LIBELLE'], how='outer').sort_values(by=['SCORE'], ascending=False).reset_index()[["LIBELLE", "UNIVERS", "SCORE"]]
+    universLibelle = metadata[['FAMILLE', 'MAILLE', 'UNIVERS', 'LIBELLE']].copy().groupby(['FAMILLE', 'MAILLE', 'UNIVERS', 'LIBELLE']).size().reset_index().sort_values(by=['LIBELLE'])
+    return pd.merge(universLibelle[['FAMILLE', 'MAILLE', 'UNIVERS', 'LIBELLE']], libelleScore[['LIBELLE', 'SCORE']], on=['LIBELLE'], how='outer').sort_values(by=['SCORE'], ascending=False).reset_index()[['FAMILLE', 'MAILLE', 'UNIVERS', 'LIBELLE', 'SCORE']]
 
-print(getUniversLibelleScoreDF())
+print(getLibelleScoreDF())
 
 # print(metadata)
 # print(scoreTable)
