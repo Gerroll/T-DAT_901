@@ -14,7 +14,9 @@ if __name__ == "__main__":
     print("Please Wait ...")
 
     recomandation = getOneRecomandation(clientId)
-    # print(recomandation)
+    print(recomandation)
 
-    # statisticalReport = getStatisticalReport(clientId)
-    # print(statisticalReport)
+    # TODO 
+    # TODO statisticalReport = getStatisticalReport(clientId)
+    # TODO print(statisticalReport)
+    # TODO 

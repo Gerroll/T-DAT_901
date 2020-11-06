@@ -21,8 +21,8 @@ class Column(Enum):
     CLI_ID = "CLI_ID"
 
 
-def initDataFrame():
-    metadata = pd.read_csv('KaDo.csv', low_memory=False, nrows=1000000)
+def initDataFrame(nrows=100000):
+    metadata = pd.read_csv('KaDo.csv', low_memory=False, nrows=nrows)
     return metadata
 
 # just for the sick of it
@@ -175,8 +175,8 @@ def getCliIdListOfClientClusterGroup(fitedKmeanModel, userPercentByFamilly, clie
 ### PUBLIC FONCTION TO USE
 ###
 ############
-def getOneRecomandation(my_client_id):
-    metadata = initDataFrame()
+def getOneRecomandation(my_client_id, rowCsv=100000):
+    metadata = initDataFrame(rowCsv)
     famille_list = metadata["FAMILLE"].unique()
 
     # getting prefered familly for my_client_id 
@@ -221,11 +221,3 @@ def getOneRecomandation(my_client_id):
     # getting recommandation item based on best score and prefered familly of my client
     recommandation = getRecommandationStrategie1(clientClusterMetadata, my_client_id, clientMostPopularFamille)
     return recommandation
-
-if __name__ == "__main__":
-    metadata = initDataFrame()
-    # cliIdList = []
-    # metadata = metadata.loc[metadata['CLI_ID'].isin(cliIdList)].sort_values(by=['CLI_ID']).reset_index()
-    # print(metadata[:20])
-    # print(getOneRecomandation(1490281))
-
