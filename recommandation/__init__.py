@@ -1,1 +1,1 @@
-from .recommandation import getOneRecomandation
+from .recommandation import getRecomandation

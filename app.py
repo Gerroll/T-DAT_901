@@ -1,6 +1,6 @@
 from textwrap import dedent
 
-from recommandation import getOneRecomandation
+from recommandation import getRecomandation
 
 if __name__ == "__main__":
     print(dedent("""
@@ -13,7 +13,7 @@ if __name__ == "__main__":
     print(f"Your id : '{clientId}'")
     print("Please Wait ...")
 
-    recomandation = getOneRecomandation(clientId)
+    recomandation = getRecomandation(clientId, rowCsv=100000)
     print(recomandation)
 
     # TODO 
