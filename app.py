@@ -1,0 +1,20 @@
+from textwrap import dedent
+
+from recommandation import getOneRecomandation
+
+if __name__ == "__main__":
+    print(dedent("""
+        This application will give you a recomandation and a statistical report base on your client ID.
+        What is your client ID ?\
+    """))
+    clientId = input()
+    if clientId == "":
+        clientId = 1490281
+    print(f"Your id : '{clientId}'")
+    print("Please Wait ...")
+
+    recomandation = getOneRecomandation(clientId)
+    # print(recomandation)
+
+    # statisticalReport = getStatisticalReport(clientId)
+    # print(statisticalReport)
