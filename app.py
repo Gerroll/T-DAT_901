@@ -5,7 +5,7 @@ from recommandation import getOneRecomandation
 if __name__ == "__main__":
     print(dedent("""
         This application will give you a recomandation and a statistical report base on your client ID.
-        What is your client ID ?\
+        What is your client ID ? (Press 'enter' to get default id)\
     """))
     clientId = input()
     if clientId == "":

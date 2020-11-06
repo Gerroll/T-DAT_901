@@ -45,6 +45,12 @@ def printBasicData(metadata):
 ### RECOMANDATION BY SCORE AND FAMILLY PREFERENCE
 ###
 ############
+def mostPopularFamille(data):
+    """For a given Dataset, the most popular items with their libelle and their count  """
+    FAMILLEUNIVERS = data.groupby(['FAMILLE','LIBELLE']).size().to_frame(name='size').reset_index().sort_values(by=['size'],ascending=False)
+    return FAMILLEUNIVERS.drop_duplicates(subset=['FAMILLE'])
+     
+
 # Score definition: Number of client that buy the article at least twice
 def getScoreForLibelleDF(metadata):
     # Table of all "CLI_ID", "LIBELLE" possible then counting the "NB_BUY" for each
@@ -76,7 +82,6 @@ def getListOfLibelleOfTheClientDidBuy(metadata, client_id: int):
     df = metadata.copy()
     client_list_article_dataframe = df.loc[df[Column.CLI_ID.name] == client_id]
     label_list_df = client_list_article_dataframe.groupby(['FAMILLE', 'MAILLE', 'UNIVERS', 'LIBELLE']).size().reset_index()
-    # label_list = label_list_df['LIBELLE']
     return label_list_df
 
 
@@ -97,8 +102,8 @@ def getFiveFirstLineLibelleOfSpecificCategory(libelleScoreDFWithCategories, cate
     return libelleScoreDFWithCategories.loc[libelleScoreDFWithCategories[category.name] == nameCategory][:5]
 
 
-def getRecommandationStrategie1(metadata, client_id):
-    prefered_famille_of_client = "PARFUMAGE"
+def getRecommandationStrategie1(metadata, client_id, famille_prefered):
+    prefered_famille_of_client = famille_prefered
     df_client_unbuyed_label_with_score = getNotBuyedLabelDfWithScoreDf(metadata, client_id)
     recomandation = getFiveFirstLineLibelleOfSpecificCategory(df_client_unbuyed_label_with_score, Category.FAMILLE, prefered_famille_of_client)
     return recomandation
@@ -165,26 +170,62 @@ def getCliIdListOfClientClusterGroup(fitedKmeanModel, userPercentByFamilly, clie
             client_to_include.append(userPercentByFamilly[i]['CLI_ID'])
     return client_to_include
 
-
-
 ############
 ###
 ### PUBLIC FONCTION TO USE
 ###
 ############
-def getOneRecomandation(client_id):
+def getOneRecomandation(my_client_id):
     metadata = initDataFrame()
     famille_list = metadata["FAMILLE"].unique()
 
+    # getting prefered familly for my_client_id 
+    clientMostPopularFamilleDf = mostPopularFamille(metadata.loc[metadata['CLI_ID'].isin([my_client_id])])
+    clientMostPopularFamille = clientMostPopularFamilleDf["FAMILLE"].tolist()[0]
+
+    # getting a model that register all user with their CLID_ID and their percent of buyed item by familly
+    # [{
+    #     'CLI_ID': 123456,
+    #     'FAMILLE': {
+    #         'HYGIENE': 10,
+    #         . . .
+    #         'SOINS DU CORPS': 10,
+    #     }
+    # },
+    # {
+    #     . . .
+    # }]
     userPercentByFamilly = getUserPercentByFamilly(metadata, famille_list)
+
+    # getting a model that kmean will work with
+    # column : all different familly
+    # each index represent the percent of buyed familly of the user[index]
     kmeanFormat = userPercentByFamillyToKmeanFormat(userPercentByFamilly, famille_list)
-    client_index = getClientIndexFromClientId(userPercentByFamilly, client_id)
-    myClient = createClientForKmeanPredict(kmeanFormat, famille_list, client_index)
+    
+    # training the model with columns being all different familly
     fitedKmeanModel = fitKmeanModel(kmeanFormat, famille_list)
+
+    # getting the equivalent index in the kmeanFormat of my client_id
+    client_index = getClientIndexFromClientId(userPercentByFamilly, my_client_id)
+
+    # getting my client in the needed format for the prediction
+    myClient = createClientForKmeanPredict(kmeanFormat, famille_list, client_index)
+
+    # predict the client cluster group then 
+    # retrive the list of client_id from the cluster my my_client_id belongs to
     cliIdList = getCliIdListOfClientClusterGroup(fitedKmeanModel, userPercentByFamilly, myClient)
+    
+    # getting a dataframe with only ticket with client_id in the list
     clientClusterMetadata = metadata.loc[metadata['CLI_ID'].isin(cliIdList)].sort_values(by=['CLI_ID']).reset_index()
-    recommandation = getRecommandationStrategie1(metadata, client_id)
-    print(recommandation)
-    recommandation = getRecommandationStrategie1(clientClusterMetadata, client_id)
-    print(recommandation)
+
+    # getting recommandation item based on best score and prefered familly of my client
+    recommandation = getRecommandationStrategie1(clientClusterMetadata, my_client_id, clientMostPopularFamille)
     return recommandation
+
+if __name__ == "__main__":
+    metadata = initDataFrame()
+    # cliIdList = []
+    # metadata = metadata.loc[metadata['CLI_ID'].isin(cliIdList)].sort_values(by=['CLI_ID']).reset_index()
+    # print(metadata[:20])
+    # print(getOneRecomandation(1490281))
+

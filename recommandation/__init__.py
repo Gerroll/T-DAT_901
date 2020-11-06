@@ -1,1 +1,1 @@
-from .data_explo import getOneRecomandation
+from .recommandation import getOneRecomandation
