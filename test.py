@@ -97,6 +97,11 @@ def mostPopularInUnivers(data):
     FAMILLEUNIVERS = data.groupby(['UNIVERS','LIBELLE']).size().to_frame(name='size').reset_index().sort_values(by=['size'],ascending=False)
     print(FAMILLEUNIVERS.drop_duplicates(subset=['UNIVERS']))
 
+def mostPopularInFamille(data):
+    """For a given Dataset, the most popular items with their libelle and their count  """
+    FAMILLEUNIVERS = data.groupby(['FAMILLE','LIBELLE']).size().to_frame(name='size').reset_index().sort_values(by=['size'],ascending=False)
+    print(FAMILLEUNIVERS.drop_duplicates(subset=['FAMILLE']))
+
 
 def meanPriceInFamille():
     """ Mean price for items  by Famille """
@@ -155,7 +160,7 @@ print('after best cli ' , time.time() - debut)
 
 
 debut = time.time()
-meanAndNumbersOfItemsByTicket(data=data)
+mostPopularInFamille(data=data)
 print('after mean Items by ticker ' , time.time() - debut)
 #meanAndStdNumbersOfItemByClients(data=bestCliForTest())
 meanPriceOfATicket(data=data)
