@@ -1,3 +1,5 @@
+from enum import Enum
+
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -8,6 +10,15 @@ import time
 debut = time.time()
 data = pd.read_csv("./res/KaDoSample.csv")
 print('after read ', time.time() - debut)
+class Column(Enum):
+    TICKET_ID = "TICKET_ID"
+    MOIS_VENTE = "MOIS_VENTE"
+    PRIX_NET = "PRIX_NET"
+    FAMILLE = "FAMILLE"
+    UNIVERS = "UNIVERS"
+    MAILLE = "MAILLE"
+    LIBELLE = "LIBELLE"
+    CLI_ID = "CLI_ID"
 
 
 def numbersOfItems(data):
@@ -87,21 +98,24 @@ def bestCliForTest():
 
 
 def printData(data):
-    numberOfTicketByMonth = data.hist(by='FAMILLE', column="PRIX_NET")
+    numberOfTicketByFamille = data.hist(by='FAMILLE', column="PRIX_NET")
+    plt.suptitle('Nombre de produit acheté par famille')
     plt.show()
+    month_union = data.groupby(['MOIS_VENTE'])
+    print(month_union.describe())
+    numberOfTicketByMonth = month_union['MOIS_VENTE'].hist()
+    plt.suptitle('Nombre de produit acheté par Mois')
+    plt.show()
+
 
 
 # numbersOfItems(data=data)
 # mostPopularInUnivers(data=bestCliForTest())
-
-printData(data=data)
 
 debut = time.time()
 data = bestCliForTest()
 print('after best cli ', time.time() - debut)
 
 debut = time.time()
-meanAndNumbersOfItemsByTicket(data=data)
+printData(data=data)
 print('after mean Items by ticker ', time.time() - debut)
-# meanAndStdNumbersOfItemByClients(data=bestCliForTest())
-meanPriceOfATicket(data=data)
