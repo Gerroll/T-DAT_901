@@ -43,6 +43,7 @@ def printStatisticalReport(metadata):
 
 if __name__ == "__main__":
     metadata = initDataFrame(nrows=10000)
+    #recommend(metadata)
     printStatisticalReport(metadata)
 
 
