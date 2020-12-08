@@ -175,8 +175,7 @@ def getCliIdListOfClientClusterGroup(fitedKmeanModel, userPercentByFamilly, clie
 ### PUBLIC FONCTION TO USE
 ###
 ############
-def getRecomandation(my_client_id, rowCsv=100000):
-    metadata = initDataFrame(rowCsv)
+def getRecomandation(my_client_id, metadata):
     famille_list = metadata["FAMILLE"].unique()
 
     # getting prefered familly for my_client_id 

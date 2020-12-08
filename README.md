@@ -50,13 +50,14 @@ Windows:
 `venv3.7\Scripts\activate.bat`
 
 ### Install package in virtualenv
-`pip install <module>`
+`pip3 install <module>`
 
 ### Save dependencies
-`pip freeze > requirements3.7.txt`
+`pip3 freeze > requirements3.7.txt`
 
 ### Load dependencies
-`pip install -r requirements3.7.txt`
+`pip3 install -r requirements3.7.txt`
+sudo can be needed
 
 ### Stop using virtualenv
 `deactivate`
