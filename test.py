@@ -1,14 +1,11 @@
+import math
 from enum import Enum
-
 import pandas as pd
-import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
-from timeit import Timer
 import time
 
 debut = time.time()
-data = pd.read_csv("./res/KaDoSample.csv")
+dataSample = pd.read_csv("./res/KaDoSample.csv")
 print('after read ', time.time() - debut)
 class Column(Enum):
     TICKET_ID = "TICKET_ID"
@@ -50,13 +47,13 @@ def mostPopularInFamille(data):
     print(FAMILLEUNIVERS.drop_duplicates(subset=['FAMILLE']))
 
 
-def meanPriceInFamille():
+def meanPriceInFamille(data):
     """ Mean price for items  by Famille """
     mean_price = data.groupby(['FAMILLE'])
     print(mean_price['FAMILLE', "PRIX_NET"].describe())
 
 
-def meanPriceInUnivers():
+def meanPriceInUnivers(data):
     """ Mean price for items  by Univers """
     mean_price = data.groupby(['UNIVERS'])
     print(mean_price['UNIVERS', "PRIX_NET"].describe())
@@ -78,6 +75,16 @@ def meanAndStdNumbersOfItemByClients(data):
 def meanAndNumbersOfItemsByTicket(data):
     """ Mean and std numbers of items per Ticket """
     item_description = data.value_counts(['TICKET_ID'])
+    priceByTicket = data.groupby("TICKET_ID")["PRIX_NET"]
+    print("Size",  priceByTicket.sum().size)
+    if priceByTicket.sum().max() <= 250:
+        max =  priceByTicket.sum().max()
+    else:
+        max = 250
+
+    priceByTicket.sum().hist(bins=int(math.log(priceByTicket.sum().size,2)),range=[0,max])
+    plt.suptitle("Nombre de panier par prix")
+    plt.show()
 
     print('Number of Ticket : ', item_description.count())
     print('Range of items by Ticket: ', item_description.min(), '-', item_description.max())
@@ -91,7 +98,7 @@ def meanPriceOfATicket(data):
     print(ticket_union['PRIX_NET'].mean())
 
 
-def bestCliForTest():
+def bestCliForTest(data):
     """return a subset of the data with the cli_id that has the most items buyed in the subset  """
     # print(data['CLI_ID'].value_counts().idxmax())
     return data[data['CLI_ID'] == data['CLI_ID'].value_counts().idxmax()]
@@ -102,20 +109,17 @@ def printData(data):
     plt.suptitle('Nombre de produit acheté par famille')
     plt.show()
     month_union = data.groupby(['MOIS_VENTE'])
-    print(month_union.describe())
-    numberOfTicketByMonth = month_union['MOIS_VENTE'].hist()
+    numberOfTicketByMonth = month_union['MOIS_VENTE'].hist(bins="auto")
     plt.suptitle('Nombre de produit acheté par Mois')
     plt.show()
 
+    meanAndNumbersOfItemsByTicket(data)
 
-
-# numbersOfItems(data=data)
-# mostPopularInUnivers(data=bestCliForTest())
 
 debut = time.time()
-data = bestCliForTest()
+#dataSample = bestCliForTest(dataSample)
 print('after best cli ', time.time() - debut)
 
 debut = time.time()
-printData(data=data)
+printData(data=dataSample)
 print('after mean Items by ticker ', time.time() - debut)
