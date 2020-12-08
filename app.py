@@ -36,7 +36,7 @@ def printStatisticalReport(metadata):
     printData(metadata)
 
     # Only with the best client
-    printData(bestCliForTest(metadata))
+    #printData(bestCliForTest(metadata))
 
     # print('Performance test print Data  : ', time.time() - debut)
 
