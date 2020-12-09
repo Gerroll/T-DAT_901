@@ -21,31 +21,24 @@ kado_file = data_dir.joinpath("KaDo.csv")
 
 class Processor:
     def __init__(self):
+        self.__raw_df = pd.read_csv(kado_file)
         self.__data = None
+        # At the end of first processing, data processed dataframe are saved into pickle file
         if user_proc_file.is_file():
             self.__load_file()
         else:
-            self.__raw_df = pd.read_csv(kado_file)
+            self.__process()
 
-    def run(self, save=True):
-        self.__data = self.__preprocess()
-        if save:
-            self.__data.to_pickle(user_proc_file)
-            print("File successfully saved to <PATH_TO_PATH>/processed-data/user_proc.pkl")
+    def get_raw_data(self):
+        return self.__raw_df
 
-    def get_data(self):
-        """
-        Get the dataframe result of the process
-        :return: dataframe result
-        """
-        if self.__data is None:
-            raise Exception('Data is not processed and worth null')
+    def get_processed_data(self):
         return self.__data
 
     def __load_file(self):
         self.__data = pd.read_pickle(user_proc_file)
 
-    def __preprocess(self):
+    def __process(self):
         # Retrieve all unique client ID
         client_ids = self.__raw_df["CLI_ID"].unique()
 
@@ -65,13 +58,15 @@ class Processor:
         # build result
         print(f"Start building dataframe at {datetime.now().time()}")
         npa = [[key] + value for key, value in collect.items()]
-        result: pd.DataFrame = pd.DataFrame(
+        self.__data = pd.DataFrame(
             np.array(npa),
             columns=df_col
         )
-
         print(f"End preprocess at {datetime.now().time()}")
-        return result
+
+        # Save to pickle
+        self.__data.to_pickle(user_proc_file)
+        print("File successfully saved to <PATH_TO_PATH>/processed-data/user_proc.pkl")
 
 
 class RSClusterBased:
@@ -114,13 +109,6 @@ class RSClusterBased:
         """
         return list(self.__data[self.__data["prediction"] == cluster_id]["CLI_ID"])
 
-    def __proportion_to_string(self, prop):
-        s = []
-        for key, val in prop.items():
-            if val != "0.0%":
-                s.append(f"{key}: {val}")
-        return ", ".join(s)
-
     def __get_famille_proportion(self, customer_ids):
         famille = ['HYGIENE', 'SOINS DU VISAGE', 'PARFUMAGE', 'SOINS DU CORPS', 'MAQUILLAGE', 'CAPILLAIRES',
                    'SOLAIRES', 'MULTI FAMILLES', 'SANTE NATURELLE']
@@ -147,9 +135,6 @@ class RSClusterBased:
         filtered = self.__raw_df[self.__raw_df["CLI_ID"] == user_id]
         return set(filtered["LIBELLE"].unique())
 
-    def __count_df_to_json(self, count):
-        return [{"LIBELLE": x, "occurrence": y} for x, y in count.items()]
-
     def __compute_explanation(self, data, n=0):
         first = data["recommendations"][n]["LIBELLE"]
         user_id = data["current_customer"]["ID"]
@@ -167,11 +152,10 @@ class RSClusterBased:
                f"Furthermore the user and his cluster have the same type of consumption: *User " \
                f"consumption type: {current_proportion} ; *Cluster consumption type: {cluster_proportion} ."
 
-    def get_recommendation(self, user_id, n=10):
+    def get_recommendation(self, user_id):
         """
         Compute the n most recommended product (less if there is less)
         :param user_id: id of the user target of the recommendation
-        :param n: size of the product list recommended
         :return: a list of most buy element, the first is the most recommended
         """
         # Get the cluster label of the user
@@ -207,6 +191,18 @@ class RSClusterBased:
         data["explanation"] = explanation
 
         return data
+
+    @staticmethod
+    def __proportion_to_string(prop):
+        s = []
+        for key, val in prop.items():
+            if val != "0.0%":
+                s.append(f"{key}: {val}")
+        return ", ".join(s)
+
+    @staticmethod
+    def __count_df_to_json(count):
+        return [{"LIBELLE": x, "occurrence": y} for x, y in count.items()]
 
 
 if __name__ == "__main__":
