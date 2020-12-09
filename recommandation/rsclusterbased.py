@@ -147,20 +147,11 @@ class RSClusterBased:
         filtered = self.__raw_df[self.__raw_df["CLI_ID"] == user_id]
         return set(filtered["LIBELLE"].unique())
 
-    def __complete_dict_customer_purchase(self, related_customers, customer_id):
-        related_customers[str(customer_id)] = {
-            "purchases": {}
-        }
-        # get items buying by the customers
-        customer_transaction: pd.DataFrame = self.__raw_df[self.__raw_df["CLI_ID"] == customer_id]
-        for item, count in customer_transaction["LIBELLE"].value_counts().items():
-            related_customers[str(customer_id)]["purchases"][item] = count
-
     def __count_df_to_json(self, count):
         return [{"LIBELLE": x, "occurrence": y} for x, y in count.items()]
 
-    def __compute_explanation(self, data):
-        first = data["recommendations"][0]["LIBELLE"]
+    def __compute_explanation(self, data, n=0):
+        first = data["recommendations"][n]["LIBELLE"]
         user_id = data["current_customer"]["ID"]
         current_proportion = self.__proportion_to_string(data["current_customer"]["proportions"])
         cluster_proportion = self.__proportion_to_string(data["cluster_customer"]["proportions"])
@@ -171,8 +162,9 @@ class RSClusterBased:
                 number_of_user = number_of_user + 1
         prop = round(number_of_user * 100.0 / cluster_size, 2)
 
-        return f"{first} is the best recommendation for the customer {user_id}, because {prop}% of his cluster buy " \
-               f"this product too. Furthermore the user and his cluster have the same type of consumption: *User " \
+        return f"{first} is the best recommendation for the customer {user_id}, because this is the number {n+1} of " \
+               f"products selling in this cluster, {prop}% of them buy it. " \
+               f"Furthermore the user and his cluster have the same type of consumption: *User " \
                f"consumption type: {current_proportion} ; *Cluster consumption type: {cluster_proportion} ."
 
     def get_recommendation(self, user_id, n=10):
@@ -219,5 +211,5 @@ class RSClusterBased:
 
 if __name__ == "__main__":
     rs: RSClusterBased = RSClusterBased()
-    prediction = rs.get_recommendation(1490281)
+    prediction = rs.get_recommendation(996899213)
     print(json.dumps(prediction, indent=2))

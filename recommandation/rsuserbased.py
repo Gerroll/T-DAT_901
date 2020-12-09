@@ -169,7 +169,7 @@ class RSUserBased:
         target: Counter = Counter()
         while closer_val >= 0.5:
             closer_id = self.__index_to_cli_id(closer_index)
-            # Compute present in closer_items but not in user_items regardless amount.
+            # Get products in closer_items but not in user_items regardless amount.
             closer_items = self.__get_unique_prod_buy_from_user_id(closer_id)
             difference = closer_items - user_items
             if len(difference) != 0:
