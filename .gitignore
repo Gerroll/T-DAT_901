@@ -138,5 +138,8 @@ KaDo.csv
 # Pycharm stuff
 .idea
 
+# pickle file package
+processed-data/
+
 # T-DAT pdf
 T-DAT-901_project.pdf
