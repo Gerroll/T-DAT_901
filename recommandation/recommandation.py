@@ -98,14 +98,20 @@ def getNotBuyedLabelDfWithScoreDf(metadata, client_id):
     df_filter_score_label = libelleScoreDFWithCategories.loc[~libelleScoreDFWithCategories['LIBELLE'].isin(list_buyed_item_client)].reset_index()
     return df_filter_score_label
 
-def getFiveFirstLineLibelleOfSpecificCategory(libelleScoreDFWithCategories, category: Category, nameCategory: str):
-    return libelleScoreDFWithCategories.loc[libelleScoreDFWithCategories[category.name] == nameCategory][:5]
+def getScoreNormalize(df_with_score):
+    max_score = df_with_score['SCORE'].max()
+    df_with_score['SCORE'] /= max_score
+    return df_with_score
+
+def getDFOfSpecificCategory(libelleScoreDFWithCategories, category: Category, nameCategory: str):
+    return libelleScoreDFWithCategories.loc[libelleScoreDFWithCategories[category.name] == nameCategory]
 
 
 def getRecommandationStrategie1(metadata, client_id, famille_prefered):
     prefered_famille_of_client = famille_prefered
     df_client_unbuyed_label_with_score = getNotBuyedLabelDfWithScoreDf(metadata, client_id)
-    recomandation = getFiveFirstLineLibelleOfSpecificCategory(df_client_unbuyed_label_with_score, Category.FAMILLE, prefered_famille_of_client)
+    df_normalize_score = getScoreNormalize(df_client_unbuyed_label_with_score)
+    recomandation = getDFOfSpecificCategory(df_normalize_score, Category.FAMILLE, prefered_famille_of_client)
     return recomandation
 
 
@@ -220,4 +226,4 @@ def getRecomandation(my_client_id, rowCsv=100000):
 
     # getting recommandation item based on best score and prefered familly of my client
     recommandation = getRecommandationStrategie1(clientClusterMetadata, my_client_id, clientMostPopularFamille)
-    return recommandation
+    return recommandation.reset_index()
