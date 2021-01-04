@@ -75,7 +75,7 @@ class RSClusterBased:
         self.__data = None
         if remake_prediction:
             proc: Processor = Processor()
-            self.__data = proc.get_data()
+            self.__data = proc.get_processed_data()
             self.__remake_prediction(min_cluster_size)
         else:
             self.__load_predicted_data()
