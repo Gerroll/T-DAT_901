@@ -20,20 +20,20 @@ def numbersOfItems(data):
 
 def mostPopularInUnivers(data):
     """For a given Dataset, the most popular items with their libelle and their count  """
-    familleunivers = data.groupby(['UNIVERS', 'LIBELLE']).size().to_frame(name='size').reset_index().sort_values(
+    popular_items = data.groupby(['UNIVERS', 'LIBELLE']).size().to_frame(name='size').reset_index().sort_values(
         by=['size'], ascending=False)
     print("Objets les plus populaires par univers")
-    print(familleunivers.drop_duplicates(subset=['UNIVERS']).head())
+    print(popular_items.drop_duplicates(subset=['UNIVERS']).head())
     print()
 
 
 
 def mostPopularInFamille(data):
     """For a given Dataset, the most popular items with their libelle and their count  """
-    FAMILLEUNIVERS = data.groupby(['FAMILLE', 'LIBELLE']).size().to_frame(name='size').reset_index().sort_values(
+    popular_items = data.groupby(['FAMILLE', 'LIBELLE']).size().to_frame(name='size').reset_index().sort_values(
         by=['size'], ascending=False)
     print("Objets les plus populaires par Famille")
-    print(FAMILLEUNIVERS.drop_duplicates(subset=['FAMILLE']).head())
+    print(popular_items.drop_duplicates(subset=['FAMILLE']).head())
     print()
 
 
