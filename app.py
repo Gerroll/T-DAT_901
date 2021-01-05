@@ -13,16 +13,7 @@ def initDataFrame(nrows=100000):
     metadata = pd.read_csv('./res/KaDoSample.csv', low_memory=False, nrows=nrows)
     return metadata
 
-def recommend(metadata):
-    print(dedent("""
-           This application will give you a recomandation and a statistical report base on your client ID.
-           What is your client ID ? (Press 'enter' to get default id)\
-       """))
-    clientId = input()
-    if clientId == "":
-        clientId = 1490281
-    print(f"Your id : '{clientId}'")
-    print("Please Wait ...")
+def recommend(metadata, clientId):
     recomandation = getRecomandation(clientId, metadata)
     print(recomandation)
 
@@ -42,9 +33,26 @@ def printStatisticalReport(metadata):
 
 
 if __name__ == "__main__":
+    # load metadatas from dataframe
     metadata = initDataFrame(nrows=10000)
-    #recommend(metadata)
+    # ask for the client ID
+    print(dedent("""
+           This application will give you a recomandation and a statistical report base on your client ID.
+           What is your client ID ? (Press 'enter' to get default id)\
+       """))
+    clientId = input()
+    if clientId == "":
+        clientId = 1490281
+    print(f"Your id : '{clientId}'")
+    print("Please Wait ...")
+
+    # recommendation system
+    #recommend(metadata, clientId)
+
+    # print stastical report
     printStatisticalReport(metadata)
+
+    # generate pdf
 
 
 
