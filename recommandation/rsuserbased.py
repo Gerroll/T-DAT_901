@@ -148,7 +148,6 @@ class RSUserBased:
         count = CountVectorizer()
         count.fit(self.__data["description"])
         count_matrix = count.transform(self.__data["description"])
-
         # Transform this description into vector
         user_vector = count.transform([user_description])
         # Compute similarity vector

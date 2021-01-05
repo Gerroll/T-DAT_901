@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 import hdbscan
 from pathlib import Path
+import sys
 
 """
     Paths
@@ -66,40 +67,45 @@ class Processor:
 
         # Save to pickle
         self.__data.to_pickle(user_proc_file)
-        print("File successfully saved to <PATH_TO_PATH>/processed-data/user_proc.pkl")
+        print("File successfully saved to <PROJECT_ROOT>/processed-data/user_proc.pkl")
 
 
 class RSClusterBased:
-    def __init__(self, remake_prediction=False, min_cluster_size=60):
+    def __init__(self, remake_prediction=False, min_cluster_size=100):
         self.__raw_df = pd.read_csv(kado_file)
         self.__data = None
+
         if remake_prediction:
-            proc: Processor = Processor()
-            self.__data = proc.get_processed_data()
             self.__remake_prediction(min_cluster_size)
-        else:
-            self.__load_predicted_data()
+
+        if not user_proc_cluster_file.is_file():
+            print("Predicted data doesn't exist. Re-compute the prediction...")
+            self.__remake_prediction(min_cluster_size)
+
+        self.__data = pd.read_pickle(user_proc_cluster_file)
 
     def get_raw_df(self):
         return self.__raw_df
 
-    def __load_predicted_data(self):
-        if not user_proc_cluster_file.is_file():
-            raise Exception("Predicted data doesn't exist. Re-compute the prediction.")
-        self.__data = pd.read_pickle(user_proc_cluster_file)
+    def __remake_prediction(self, min_cluster_size):
+        proc: Processor = Processor()
+        self.__data = proc.get_processed_data()
+        self.__train(min_cluster_size)
 
-    def __remake_prediction(self, min_cluster_size, save=True):
+    def __train(self, min_cluster_size, save=True):
         clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size)
         df = pd.DataFrame()
 
         for fam in list(self.__raw_df["FAMILLE"].unique()):
             df[fam] = self.__data[fam]
+        print("Start of fitting hdbscan model")
         clusterer.fit(df)
-        print(clusterer.labels_.max())
+        print("End of fitting")
+        print(f"Number of labels: {clusterer.labels_.max()}")
         self.__data["prediction"] = clusterer.labels_
         if save:
             self.__data.to_pickle(user_proc_cluster_file)
-            print("File successfully saved to <PATH_TO_PATH>/processed-data/user_proc_cluster.pkl")
+            print("File successfully saved to <PROJECT_ROOT>/processed-data/user_proc_cluster.pkl")
 
     def __get_customers_id_from_cluster_id(self, cluster_id):
         """
