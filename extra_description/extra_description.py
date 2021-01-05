@@ -1,15 +1,8 @@
 import numpy as np
 import pandas as pd
-import json
 from datetime import datetime
-import hdbscan
 from pathlib import Path
 from sklearn.cluster import KMeans
-
-
-import seaborn as sns
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 
 
 # Adjust pandas console display
@@ -26,12 +19,14 @@ pd.set_option('display.max_columns', 500)
 project_dir = Path(__file__).parent.parent
 # path to processed data
 proc_data_dir = project_dir.joinpath("processed-data")
-user_proc_cluster_file = proc_data_dir.joinpath("user_proc_cluster.pkl")
-user_proc_3_file = proc_data_dir.joinpath("user_proc_3.pkl")
-user_proc_cluster_3_file = proc_data_dir.joinpath("user_proc_cluster_3.pkl")
+segmentation_proc_file = proc_data_dir.joinpath("segmentation_proc.pkl")
+segmentation_proc_cluster_file = proc_data_dir.joinpath("segmentation_proc_cluster.pkl")
 # path to data source
 data_dir = project_dir.joinpath("data")
 kado_file = data_dir.joinpath("KaDo.csv")
+print(project_dir)
+print(data_dir)
+print(kado_file)
 
 
 class Processor:
@@ -39,7 +34,7 @@ class Processor:
         self.__raw_df = pd.read_csv(kado_file)
         self.__data = None
         # At the end of first processing, data processed dataframe are saved into pickle file
-        if user_proc_3_file.is_file():
+        if segmentation_proc_file.is_file():
             self.__load_file()
         else:
             self.__process()
@@ -51,32 +46,7 @@ class Processor:
         return self.__data
 
     def __load_file(self):
-        self.__data = pd.read_pickle(user_proc_3_file)
-
-    def looking_for_most_relevant_n_cluster(self, features, max_cluster=10):
-        # get only interest features
-        df = pd.DataFrame()
-        for ft in features:
-            df[ft] = self.__data[ft]
-
-        # compute inertia
-        ks = range(1, max_cluster)
-        inertias = []
-        for k in ks:
-            print(k)
-            # Create a KMeans instance with k clusters: model
-            model = KMeans(n_clusters=k)
-
-            # Fit model to samples
-            model.fit(df)
-
-            # Append the inertia to the list of inertias
-            inertias.append(model.inertia_)
-        plt.plot(ks, inertias, '-o', color='black')
-        plt.xlabel('number of clusters, k')
-        plt.ylabel('inertia')
-        plt.xticks(ks)
-        plt.show()
+        self.__data = pd.read_pickle(segmentation_proc_file)
 
     def __process(self):
         # Retrieve all unique client ID
@@ -104,8 +74,8 @@ class Processor:
         print(f"End preprocess at {datetime.now().time()}")
 
         # Save to pickle
-        self.__data.to_pickle(user_proc_3_file)
-        print("File successfully saved to <PATH_TO_PATH>/processed-data/user_proc.pkl")
+        self.__data.to_pickle(segmentation_proc_file)
+        print("File successfully saved to <PROJECT_ROOT>/processed-data/segmentation_proc.pkl")
 
 
 class Clusterer:
@@ -114,7 +84,7 @@ class Clusterer:
         self.__raw_df = proc.get_raw_data()
         self.__data = proc.get_processed_data()
         self.__data_size = len(self.__data)
-        if user_proc_cluster_3_file.is_file():
+        if segmentation_proc_cluster_file.is_file():
             self.__load_predicted_data()
         else:
             self.__remake_prediction()
@@ -123,7 +93,7 @@ class Clusterer:
         return self.__data
 
     def __load_predicted_data(self):
-        self.__data = pd.read_pickle(user_proc_cluster_3_file)
+        self.__data = pd.read_pickle(segmentation_proc_cluster_file)
 
     def __kmeans_prediction_one_feature(self, feature, n_clusters):
         """
@@ -147,6 +117,10 @@ class Clusterer:
         self.__data[feature + "_cluster"] = pred
 
     def __remake_prediction(self):
+        """
+        The size of clusters was determined by the Elbow method
+        :return: None
+        """
         cluster_conf = [
             {
                 "feature": "NUM_BUY",
@@ -165,8 +139,8 @@ class Clusterer:
             self.__kmeans_prediction_one_feature(roadmap["feature"], roadmap["cluster_size"])
 
         # save prediction
-        self.__data.to_pickle(user_proc_cluster_3_file)
-        print("File successfully saved to <PATH_TO_PATH>/processed-data/user_proc_cluster_3.pkl")
+        self.__data.to_pickle(segmentation_proc_cluster_file)
+        print("File successfully saved to <PROJECT_ROOT>/processed-data/segmentation_proc_cluster.pkl")
 
     def get_cluster_description(self, feature, cluster_label):
         tags = {
@@ -246,9 +220,3 @@ if __name__ == "__main__":
         print("")
         print(index)
         clusterer.get_description(index)
-    #for ft in ["NUM_BUY", "SUM_PRICE", "SIZE_BASKET"]:
-    #    for i in range(0, 4):
-    #        print(clusterer.get_cluster_description(ft, i))
-    #        print("")
-
-
