@@ -11,9 +11,9 @@ NROWS = 10000
 def initDataFrame():
     """Get a dataframe with nrows entries """
     if NROWS == 0 or NROWS == None:
-      return pd.read_csv('./res/KaDoSample.csv', low_memory=False, nrows=NROWS) # limited rows dataset
+      return pd.read_csv('./res/KaDoSample.csv', low_memory=False)  # the whole dataset
     else:
-      return pd.read_csv('./res/KaDoSample.csv', low_memory=False) # the whole dataset
+      return pd.read_csv('./res/KaDoSample.csv', low_memory=False, nrows=NROWS)# limited rows dataset
 
 def recommend(metadata, clientId):
     recomandation = getRecomandation(clientId, metadata)
@@ -26,13 +26,13 @@ def printStatisticalReport(metadata, clientId):
     # debut = time.time()
 
     #whole dataset
-    printData(metadata)
+    #printData(metadata)
 
     # Only with the best client
     #printData(bestCliForTest(metadata))
 
     # With the specified client id
-    # printData(getCliData(metadata, clientId))
+    printData(getCliData(metadata, clientId))
 
     # print('Performance test print Data  : ', time.time() - debut)
 
