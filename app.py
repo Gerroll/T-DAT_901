@@ -6,12 +6,12 @@ import pandas as pd
 from recommandation import getRecomandation
 from statistical_report import printData , bestCliForTest, getCliData
 
-NROWS = 10000
+N_ROWS = 10000
 
 def initDataFrame():
     """Get a dataframe with nrows entries """
-    if NROWS == 0 or NROWS == None:
-      return pd.read_csv('./res/KaDoSample.csv', low_memory=False, nrows=NROWS) # limited rows dataset
+    if N_ROWS == 0 or N_ROWS == None:
+      return pd.read_csv('./res/KaDoSample.csv', low_memory=False, nrows=N_ROWS) # limited rows dataset
     else:
       return pd.read_csv('./res/KaDoSample.csv', low_memory=False) # the whole dataset
 
@@ -56,9 +56,6 @@ if __name__ == "__main__":
 
     # print stastical report
     printStatisticalReport(metadata, clientId)
-
-    # generate pdf
-
 
 
 
