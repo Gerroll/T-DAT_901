@@ -119,21 +119,31 @@ def histTicketByFamille(data):
     plt.close()
 
 def pieTicketByFamille(data):
-    """histogram of every Famille with the y: number of item bought /x : price of the item o"""
+    """piechart of quantity of sales in every Famille """
     sums = data.value_counts('FAMILLE')
-    plt.pie(sums, labels=sums.index)
+    plt.pie(sums, labels=sums.index, autopct='%1.1f%%')
     plt.axis = 'equal'
     plt.suptitle('Nombre de produits achetés par famille')
+    plt.show()
+
+def piePriceByFamille(data):
+    """piechart of volume of price in every Famille for a given dataset """
+    sums = data.groupby('FAMILLE').sum()
+    print(sums)
+    plt.pie(sums['PRIX_NET'], labels=sums.index, autopct='%1.1f%%',startangle=90)
+    plt.axis = 'equal'
+    plt.suptitle('Somme dépensé par famille')
     plt.show()
 
 
 
 def histNumberOfTicketByPrice(data):
-    """histogram of x: price of ticket/ y : number of ticket"""
+    """histogram of x: month/ y : number of ticket"""
     fig = plt.figure()
     month_union = data.groupby(['MOIS_VENTE'])
+    print(month_union['PRIX_NET'])
     month_union['MOIS_VENTE'].hist(bins="auto")
-    plt.xticks([1., 3., 5., 7., 9., 11.], ["Janvier", "Mars", "Mai", "Juillet", "Septembre", "Novembre"])
+    plt.xticks([1., 4., 7., 10., 12.], ["Janvier", "Avril", "Juillet", "Octobre", "Decembre"])
     plt.suptitle('Nombre de produits achetés par Mois')
 
     if PRINT_PDF is False:
@@ -141,6 +151,17 @@ def histNumberOfTicketByPrice(data):
     plt.close()
 
     return fig
+
+def histPricePayedByMonth(data):
+    """histogram of x: sum of price of ticket/ y : number of ticket"""
+    sums = data.groupby(['MOIS_VENTE'])
+    sums['PRIX_NET'].sum().plot(kind='bar')
+    label_mois=["Janvier","Fevrier","Mars","Avril","Mai","Juin", "Juillet","Aout","Septembre", "Octobre","Novembre","Decembre"]
+
+    #plt.xticks([0.,1.,2.,3., 4.,5.,6.,7., 8., 9., 10., 11.], label_mois)
+
+    plt.suptitle('Somme dépensé par Mois')
+    plt.show()
 
 def bestCliForTest(data):
     """return a subset of the data with the cli_id that has the most items buyed in the subset  """
@@ -159,8 +180,12 @@ def printData(data):
 
     # Histograms
     # fig1 = histTicketByFamille(data)
+
     fig2 = histNumberOfTicketByPrice(data)
     fig3 = histPriceByTicket(data)
+
+    # fig4 = histPricePayedByMonth(data)
+
 
     # save figures for now - TODO save figs to generated pdf
     if PRINT_PDF is True:
@@ -172,6 +197,10 @@ def printData(data):
 
     #Pie
     pieTicketByFamille(data)
+    piePriceByFamille(data)
+
+    histNumberOfTicketByPrice(data)
+    histPriceByTicket(data)
 
     numbersOfItems(data)
     meanAndStdNumbersOfItemByClients(data)
