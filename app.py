@@ -6,12 +6,14 @@ import pandas as pd
 from recommandation import getRecomandation
 from statistical_report import printData , bestCliForTest, getCliData
 
+NROWS = 10000
 
-
-def initDataFrame(nrows=100000):
+def initDataFrame():
     """Get a dataframe with nrows entries """
-    metadata = pd.read_csv('./res/KaDoSample.csv', low_memory=False, nrows=nrows)
-    return metadata
+    if NROWS == 0 or NROWS == None:
+      return pd.read_csv('./res/KaDoSample.csv', low_memory=False, nrows=NROWS) # limited rows dataset
+    else:
+      return pd.read_csv('./res/KaDoSample.csv', low_memory=False) # the whole dataset
 
 def recommend(metadata, clientId):
     recomandation = getRecomandation(clientId, metadata)
@@ -29,15 +31,15 @@ def printStatisticalReport(metadata, clientId):
     # Only with the best client
     #printData(bestCliForTest(metadata))
 
-    # with the specified client id
-    # printData(getCliData(metadate, clientId))
+    # With the specified client id
+    # printData(getCliData(metadata, clientId))
 
     # print('Performance test print Data  : ', time.time() - debut)
 
 
 if __name__ == "__main__":
     # load metadatas from dataframe
-    metadata = initDataFrame(nrows=10000)
+    metadata = initDataFrame()
     # ask for the client ID
     print(dedent("""
            This application will give you a recomandation and a statistical report base on your client ID.
