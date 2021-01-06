@@ -102,8 +102,17 @@ def histTicketByFamille(data):
             plot.set_xlabel("Prix", fontsize=8)
             plot.set_ylabel("Quantités", fontsize=8)
     plt.suptitle('Nombre de produits achetés par famille')
-
     plt.show()
+
+def pieTicketByFamille(data):
+    """histogram of every Famille with the y: number of item bought /x : price of the item o"""
+    sums = data.value_counts('FAMILLE')
+    plt.pie(sums, labels=sums.index)
+    plt.axis = 'equal'
+    plt.suptitle('Nombre de produits achetés par famille')
+    plt.show()
+
+
 
 def histNumberOfTicketByPrice(data):
     """histogram of x: price of ticket/ y : number of ticket"""
@@ -121,7 +130,7 @@ def bestCliForTest(data):
 def printData(data):
     """Display values and plot about the dataset"""
     #histogram
-    histTicketByFamille(data)
+    pieTicketByFamille(data)
     histNumberOfTicketByPrice(data)
     histPriceByTicket(data)
 
