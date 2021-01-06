@@ -87,21 +87,30 @@ def histPriceByTicket(data):
         max = 250
     # To have a consistant number of bins no matter the quantity of value
     numberOfBins = int(math.log(priceByTicket.size,2))
-    priceByTicket.hist(bins=numberOfBins,range=[0,max])
-    plt.suptitle("Nombre de panier par prix")
+    plotprice = priceByTicket.hist(bins=numberOfBins,range=[0,max])
+    plotprice.set_xlabel("Prix du panier")
+    plotprice.set_ylabel("Nombre de paniers")
+    plt.suptitle("Nombre de paniers par prix")
     plt.show()
 
 def histTicketByFamille(data):
     """histogram of every Famille with the y: number of item bought /x : price of the item o"""
-    data.hist(by='FAMILLE', column="PRIX_NET")
-    plt.suptitle('Nombre de produit acheté par famille')
+    plots = data.hist(by='FAMILLE', column="PRIX_NET")
+    for subplots in plots:
+        for plot in subplots:
+            print(plot)
+            plot.set_xlabel("Prix", fontsize=8)
+            plot.set_ylabel("Quantités", fontsize=8)
+    plt.suptitle('Nombre de produits achetés par famille')
+
     plt.show()
 
 def histNumberOfTicketByPrice(data):
     """histogram of x: price of ticket/ y : number of ticket"""
     month_union = data.groupby(['MOIS_VENTE'])
     month_union['MOIS_VENTE'].hist(bins="auto")
-    plt.suptitle('Nombre de produit acheté par Mois')
+    plt.xticks([1., 3., 5., 7., 9., 11.], ["Janvier", "Mars", "Mai", "Juillet", "Septembre", "Novembre"])
+    plt.suptitle('Nombre de produits achetés par Mois')
     plt.show()
 
 def bestCliForTest(data):
