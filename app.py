@@ -26,13 +26,13 @@ def printStatisticalReport(metadata, clientId):
     # debut = time.time()
 
     #whole dataset
-    #printData(metadata)
+    printData(metadata)
 
     # Only with the best client
     #printData(bestCliForTest(metadata))
 
     # With the specified client id
-    printData(getCliData(metadata, clientId))
+    #printData(getCliData(metadata, clientId))
 
     # print('Performance test print Data  : ', time.time() - debut)
 
