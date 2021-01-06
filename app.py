@@ -4,7 +4,7 @@ from textwrap import dedent
 import pandas as pd
 
 from recommandation import getRecomandation
-from statistical_report import printData , bestCliForTest
+from statistical_report import printData , bestCliForTest, getCliData
 
 
 
@@ -18,7 +18,7 @@ def recommend(metadata, clientId):
     print(recomandation)
 
 
-def printStatisticalReport(metadata):
+def printStatisticalReport(metadata, clientId):
     ###
     ### For performance test remove the commentary
     # debut = time.time()
@@ -28,6 +28,9 @@ def printStatisticalReport(metadata):
 
     # Only with the best client
     #printData(bestCliForTest(metadata))
+
+    # with the specified client id
+    # printData(getCliData(metadate, clientId))
 
     # print('Performance test print Data  : ', time.time() - debut)
 
@@ -50,7 +53,7 @@ if __name__ == "__main__":
     #recommend(metadata, clientId)
 
     # print stastical report
-    printStatisticalReport(metadata)
+    printStatisticalReport(metadata, clientId)
 
     # generate pdf
 

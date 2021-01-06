@@ -108,6 +108,12 @@ def bestCliForTest(data):
     """return a subset of the data with the cli_id that has the most items buyed in the subset  """
     return data[data['CLI_ID'] == data['CLI_ID'].value_counts().idxmax()]
 
+def getCliData(data, client_id):
+    """return a subset of the data with the cli_id specified  """
+    if client_id:
+      return data[data['CLI_ID'] == client_id]
+    else:
+      return data
 
 def printData(data):
     """Display values and plot about the dataset"""
