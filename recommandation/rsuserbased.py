@@ -63,7 +63,7 @@ class Processor:
 
         # Save dataframe into pickle file
         self.__data.to_pickle(user_proc_file)
-        print("File successfully saved to <PATH_TO_PATH>/processed-data/user_proc_2.pkl")
+        print("File successfully saved to <PROJECT_ROOT>/processed-data/user_proc_2.pkl")
 
 
 class Counter:
