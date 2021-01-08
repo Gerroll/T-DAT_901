@@ -2,6 +2,8 @@ import math
 import os
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+import pandas as pd
+
 
 PDF_PATH = './res/statistical_report.pdf'
 PRINT_PDF = False
@@ -137,11 +139,10 @@ def piePriceByFamille(data):
 
 
 
-def histNumberOfTicketByPrice(data):
+def histNumberOfTicketByMonth(data):
     """histogram of x: month/ y : number of ticket"""
     fig = plt.figure()
     month_union = data.groupby(['MOIS_VENTE'])
-    print(month_union['PRIX_NET'])
     month_union['MOIS_VENTE'].hist(bins="auto")
     plt.xticks([1., 4., 7., 10., 12.], ["Janvier", "Avril", "Juillet", "Octobre", "Decembre"])
     plt.suptitle('Nombre de produits achetés par Mois')
@@ -158,7 +159,7 @@ def histPricePayedByMonth(data):
     sums['PRIX_NET'].sum().plot(kind='bar')
     label_mois=["Janvier","Fevrier","Mars","Avril","Mai","Juin", "Juillet","Aout","Septembre", "Octobre","Novembre","Decembre"]
 
-    #plt.xticks([0.,1.,2.,3., 4.,5.,6.,7., 8., 9., 10., 11.], label_mois)
+    plt.xticks([0.,1.,2.,3., 4.,5.,6.,7., 8., 9., 10., 11.], label_mois)
 
     plt.suptitle('Somme dépensé par Mois')
     plt.show()
@@ -181,7 +182,7 @@ def printData(data):
     # Histograms
     # fig1 = histTicketByFamille(data)
 
-    fig2 = histNumberOfTicketByPrice(data)
+    fig2 = histNumberOfTicketByMonth(data)
     fig3 = histPriceByTicket(data)
 
     # fig4 = histPricePayedByMonth(data)
@@ -193,14 +194,16 @@ def printData(data):
       saveFig(fig3, 'histPriceByTicket')
     else:
       # remove the pdf
-      removePdf()
+     removePdf()
 
     #Pie
     pieTicketByFamille(data)
     piePriceByFamille(data)
 
-    histNumberOfTicketByPrice(data)
+    histNumberOfTicketByMonth(data)
     histPriceByTicket(data)
+
+    histPricePayedByMonth(data)
 
     numbersOfItems(data)
     meanAndStdNumbersOfItemByClients(data)
@@ -208,6 +211,35 @@ def printData(data):
 
     mostPopularInUnivers(data)
     mostPopularInFamille(data)
+
+def compareResult(data_user, data_full):
+    """Compare a big dataset (full, cluster) with the data of a user"""
+    sums = data_user.groupby(['MOIS_VENTE'])
+    label_mois = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre",
+                  "Novembre", "Decembre"]
+
+
+    sums_full = data_full.groupby('CLI_ID')\
+        .filter(lambda x: len(x) >100)\
+        .groupby(['MOIS_VENTE'])
+
+    print (sums['PRIX_NET'].sum())
+    print(sums_full['PRIX_NET'].sum())
+    revert_sums = sums['PRIX_NET'].sum()
+    revert_full =sums_full['PRIX_NET'].mean()
+    frame =  pd.DataFrame({
+        "A": revert_sums,
+        "B": revert_full
+    })
+    frame.plot(kind='bar')
+
+   # plt.bar(x=revert_sums,height=1, alpha=0.5, label='User')
+    #plt.bar(x=revert_full,height=1,  alpha=0.5, label='Moyenne du dataset')
+    plt.legend(loc='upper right')
+    plt.suptitle('Full data')
+    plt.show()
+
+
 
 
 def removePdf():

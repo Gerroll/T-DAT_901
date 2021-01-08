@@ -4,7 +4,7 @@ from textwrap import dedent
 import pandas as pd
 
 from recommandation import getRecomandation
-from statistical_report import printData , bestCliForTest, getCliData
+from statistical_report import printData , bestCliForTest, getCliData,compareResult
 
 N_ROWS = 10000
 
@@ -27,6 +27,7 @@ def printStatisticalReport(metadata, clientId):
 
     #whole dataset
     printData(metadata)
+
 
     # Only with the best client
     #printData(bestCliForTest(metadata))
@@ -56,6 +57,7 @@ if __name__ == "__main__":
 
     # print stastical report
     printStatisticalReport(metadata, clientId)
+    #compareResult(bestCliForTest(metadata),metadata)
 
     # generate pdf
 

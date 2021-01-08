@@ -1,1 +1,1 @@
-from .statistical_report import printData, bestCliForTest, getCliData
+from .statistical_report import printData, bestCliForTest, getCliData, compareResult
