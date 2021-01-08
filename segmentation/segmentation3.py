@@ -4,11 +4,13 @@ import json
 from datetime import datetime
 import hdbscan
 from pathlib import Path
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, SpectralClustering, DBSCAN
 import matplotlib.pyplot as plt
 import sys
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import NearestNeighbors
+import hdbscan
 
 
 # Adjust pandas console display
@@ -95,33 +97,44 @@ class Processor:
         plt.xticks(ks)
         plt.show()
 
+    def optimal_eps_DBSCAN(self, df, n_neighbors):
+        df = StandardScaler().fit_transform(df)
+        neigh = NearestNeighbors(n_neighbors=n_neighbors)
+        nbrs = neigh.fit(df)
+        distances, indices = nbrs.kneighbors(df)
+        distances = np.sort(distances, axis=0)
+        distances = distances[:, 1]
+        plt.plot(distances)
+        plt.show()
+
     def __process(self):
         # Retrieve all unique client ID
         client_ids = self.__raw_df["CLI_ID"].unique()
+        mois = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
         familles = ['HYGIENE', 'SOINS DU VISAGE', 'PARFUMAGE', 'SOINS DU CORPS', 'MAQUILLAGE', 'CAPILLAIRES',
                     'SOLAIRES', 'MULTI FAMILLES', 'SANTE NATURELLE']
-        main_col = ['N_PURCHASE', 'T_PRICE', 'N_BASKET']
+        amount = ['N_PURCHASE', 'T_PRICE', 'N_BASKET']
         df_col = ['CLI_ID']
         ticket_ids = set()
 
-        # build dataframe column
-        for i in range(12):
-            for famille in familles:
-                for col in main_col:
-                    df_col.append(col + '-' + famille + '-' + str(i))
-
-        for l in df_col:
-            print(l)
-        print(len(df_col))
+        df_col.extend(amount)
+        df_col.extend(familles)
+        df_col.extend(mois)
 
         # init collecting
         print(f"Init collecting at {datetime.now().time()}")
-        collect = {k: [0] * 324 for k in client_ids}
+        collect = {k: [0] * 24 for k in client_ids}
 
         # collect data
         print(f"Start collecting at {datetime.now().time()}")
         for row in self.__raw_df.itertuples():
-            self.__complete_collecting(collect, row, familles, ticket_ids)
+            self.__complete_collecting(collect, row, ticket_ids)
+
+        # normalize mois and famille
+        print("normalize mois and famille")
+        for key, val in collect.items():
+            for i in range(3, 24):
+                collect[key][i] = round(collect[key][i] * 100 / collect[key][0], 2)
 
         # build result
         print(f"Start building dataframe at {datetime.now().time()}")
@@ -134,165 +147,162 @@ class Processor:
 
         # Save to pickle
         self.__data.to_pickle(segmentation3_proc_file)
-        print("File successfully saved to <PROJECT_ROOT>/processed-data/user_proc.pkl")
+        print("File successfully saved to <PROJECT_ROOT>/processed-data/segmentation3_proc.pkl")
 
-    def __complete_collecting(self, collect, row, familles: list, ticket_ids):
+    def __complete_collecting(self, collect, row, ticket_ids):
+        familles = ['HYGIENE', 'SOINS DU VISAGE', 'PARFUMAGE', 'SOINS DU CORPS', 'MAQUILLAGE', 'CAPILLAIRES',
+                    'SOLAIRES', 'MULTI FAMILLES', 'SANTE NATURELLE']
         ticket_id = row[1]
-        mois_vente = int(row[2]) - 1
+        mois_index = int(row[2]) - 1
         prix_net = float(row[3])
         famille = row[4]
         cli_id = row[8]
         famille_index = familles.index(famille)
 
-        base_index = mois_vente * 9 * 3 + famille_index * 3
-
         # number of purchases
-        collect[cli_id][base_index] += 1
+        collect[cli_id][0] += 1
         # sum of prices
-        collect[cli_id][base_index + 1] += prix_net
+        collect[cli_id][1] += prix_net
         # number of baskets
         if ticket_id not in ticket_ids:
-            collect[cli_id][base_index + 2] += 1
+            collect[cli_id][2] += 1
             ticket_ids.add(ticket_id)
 
+        # famille proportion
+        collect[cli_id][3 + famille_index] += 1
 
-# class Clusterer:
-#     def __init__(self):
-#         proc = Processor()
-#         self.__raw_df = proc.get_raw_data()
-#         self.__data = proc.get_processed_data()
-#         self.__data_size = len(self.__data)
-#         if segmentation3_proc_cluster_file.is_file():
-#             self.__load_predicted_data()
-#         else:
-#             self.__remake_prediction()
-#
-#     def get_predicted_data(self):
-#         return self.__data
-#
-#     def __load_predicted_data(self):
-#         self.__data = pd.read_pickle(segmentation3_proc_cluster_file)
-#
-#     def __kmeans_prediction_one_feature(self, feature, n_clusters):
-#         """
-#         The number of cluster is determine with Elbow Method. Elbow Method tells the optimal cluster number for
-#         optimal inertia. Here this method gives 4 clusters for most optimal clustering, but we choose add 2 more
-#         clusters to get more rich partitioning.
-#         :param feature: name of dataframe column
-#         :param n_clusters: number of cluster
-#         :return: nothing
-#         """
-#         # build dataframe column
-#         df = pd.DataFrame()
-#         df[feature] = self.__data[feature]
-#
-#         # fit KMeans
-#         model = KMeans(n_clusters=n_clusters)
-#         model.fit(df)
-#         pred = model.predict(df)
-#
-#         # complete dataset with cluster label
-#         self.__data[feature + "_cluster"] = pred
-#
-#     def __remake_prediction(self):
-#         cluster_conf = [
-#             {
-#                 "feature": "NUM_BUY",
-#                 "cluster_size": 4
-#             },
-#             {
-#                 "feature": "SUM_PRICE",
-#                 "cluster_size": 4
-#             },
-#             {
-#                 "feature": "SIZE_BASKET",
-#                 "cluster_size": 4
-#             }
-#         ]
-#         for roadmap in cluster_conf:
-#             self.__kmeans_prediction_one_feature(roadmap["feature"], roadmap["cluster_size"])
-#
-#         # save prediction
-#         self.__data.to_pickle(segmentation3_proc_cluster_file)
-#         print("File successfully saved to <PATH_TO_PATH>/processed-data/user_proc_cluster_3.pkl")
-#
-#     def get_cluster_description(self, feature, cluster_label):
-#         tags = {
-#             "NUM_BUY": {
-#                 0: "consommation normale",
-#                 1: "consommation faible",
-#                 2: "consommation forte",
-#                 3: "consommation très forte"
-#             },
-#             "SUM_PRICE": {
-#                 0: "budget petit",
-#                 1: "budget moyen",
-#                 2: "budget élevé",
-#                 3: "budget très élevé"
-#             },
-#             "SIZE_BASKET": {
-#                 0: "petit panier",
-#                 1: "gros panier",
-#                 2: "très gros panier",
-#                 3: "moyen panier"
-#             }
-#         }
-#         target = {
-#             "feature": feature,
-#             "cluster": cluster_label,
-#             "tag": tags[feature][cluster_label],
-#             "tot_num_customers": self.__data_size
-#         }
-#         c = feature + "_cluster"
-#         cluster: pd.DataFrame = self.__data[self.__data[c] == cluster_label]
-#         target["cluster_size"] = len(cluster)
-#         target["cluster_proportion"] = round(target["cluster_size"] * 100.0 / self.__data_size, 2)
-#         target["min"] = int(cluster[feature].min())
-#         target["max"] = int(cluster[feature].max())
-#         target["mean"] = round(cluster[feature].mean(), 2)
-#         return target
-#
-#     @staticmethod
-#     def __display_description(desc):
-#         feature = desc["feature"]
-#         percent = desc["cluster_proportion"]
-#         minn = desc["min"]
-#         maxx = desc["max"]
-#         moy = desc["mean"]
-#
-#         if feature == "NUM_BUY":
-#             print("NOMBRE D'ACHAT:")
-#             print(f"Ce client appartient au {percent} % de ceux qui achètent entre {minn} et {maxx}, avec une moyenne de {moy} achats.")
-#         elif feature == "SUM_PRICE":
-#             print("TOTAL DEPENSE:")
-#             print(f"Ce client appartient au {percent} % de ceux qui achètent des produits qui coûtent entre {minn} et {maxx} euros, avec un prix moyen d'un produit acheté de {moy} euros.")
-#         elif feature == "SIZE_BASKET":
-#             print("TAILLE MOYEN DU PANIER")
-#             print(f"Ce client appartient au {percent}% des clients qui font leur course avec des paniers de taille comprise entre {minn} et {maxx}, avec une taille moyenne de panier de {moy}.")
-#
-#     def get_description(self, user_id):
-#         all_desc = []
-#         for ft in ["NUM_BUY", "SUM_PRICE", "SIZE_BASKET"]:
-#             cluster_label = self.__data[self.__data["CLI_ID"] == user_id][ft + "_cluster"].iloc[0]
-#             desc = self.get_cluster_description(ft, cluster_label)
-#             all_desc.append(desc)
-#         tags = []
-#         for d in all_desc:
-#             tags.append(d["tag"])
-#         print("TAGS: " + ", ".join(tags))
-#         for d in all_desc:
-#             self.__display_description(d)
+        # mois proportion
+        collect[cli_id][12 + mois_index] += 1
+
+
+class Clusterer:
+    def __init__(self):
+        mois = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+        familles = ['HYGIENE', 'SOINS DU VISAGE', 'PARFUMAGE', 'SOINS DU CORPS', 'MAQUILLAGE', 'CAPILLAIRES',
+                    'SOLAIRES', 'MULTI FAMILLES', 'SANTE NATURELLE']
+        amount = ['N_PURCHASE', 'T_PRICE', 'N_BASKET']
+        proc = Processor()
+        self.__raw_df = proc.get_raw_data()
+        self.__data = proc.get_processed_data()
+        self.__cli_size = len(self.__data['CLI_ID'].unique())
+        if segmentation3_proc_cluster_file.is_file():
+            self.__load_predicted_data()
+        else:
+            self.__remake_prediction(amount + familles + amount)
+        print(set(self.__data['cluster']))
+
+    def get_predicted_data(self):
+        return self.__data
+
+    def __load_predicted_data(self):
+        self.__data = pd.read_pickle(segmentation3_proc_cluster_file)
+
+    def __remake_prediction(self, features):
+        # format data
+        ori = self.__data.copy()
+        df = pd.DataFrame()
+        for col in features:
+            df[col] = ori[col]
+        df = StandardScaler().fit_transform(df)
+
+        # fit algorithm
+        print("start fitting")
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=100)
+        clusterer.fit(df)
+        print(f"Number of labels: {clusterer.labels_.max()}")
+
+        self.__data['cluster'] = clusterer.labels_
+
+        # save prediction
+        self.__data.to_pickle(segmentation3_proc_cluster_file)
+        print("File successfully saved to <PROJECT_ROOT>/processed-data/segmentation3_proc_cluster.pkl")
+
+    def get_description(self, cluster_n):
+        cluster = self.__filter_by_cluster_label(cluster_n)
+        self.display_information(cluster)
+
+    def __p2percent(self, p):
+        return str(round(p * 100, 2)) + ' %'
+
+    def display_information(self, df):
+        # df size
+        size = len(df)
+
+        # client proportion
+        t_cli = len(df['CLI_ID'].unique())
+        p = t_cli / self.__cli_size
+        c_proportion = self.__p2percent(p)
+
+        # famille proportion
+        familles = ['HYGIENE', 'SOINS DU VISAGE', 'PARFUMAGE', 'SOINS DU CORPS', 'MAQUILLAGE', 'CAPILLAIRES',
+                    'SOLAIRES', 'MULTI FAMILLES', 'SANTE NATURELLE']
+        f_proportions = []
+        for f in familles:
+            fam_df = df[df['FAMILLE'] == f]
+            p = len(fam_df) / size
+            f_proportions.append(self.__p2percent(p))
+
+        # mois proportion
+        m_proportions = []
+        for i in range(1, 13):
+            mois_df = df[df['MOIS_VENTE'] == i]
+            p = len(mois_df) / size
+            m_proportions.append(self.__p2percent(p))
+
+        # price proportion
+        mean_price = df['PRIX_NET'].mean()
+        mean_price = round(mean_price, 2)
+
+        # basket proportion
+        n_basket = len(df['TICKET_ID'].unique())
+        p = n_basket / t_cli
+        mean_basket = round(p, 2)
+
+        target = {
+            'size': c_proportion,
+            'month': m_proportions,
+            'famille': f_proportions,
+            'mean_price': mean_price,
+            'mean_basket': mean_basket
+
+        }
+        print(json.dumps(target, indent=2))
+
+    def __filter_by_cluster_label(self, cluster_n):
+        df = self.__data
+        cluster = df[df['cluster'] == cluster_n]
+        list_id = set(cluster['CLI_ID'])
+        return self.__raw_df[self.__raw_df['CLI_ID'].isin(list_id)]
+
+    def __special_print(self, target):
+        for key, value in target.items():
+            print(key)
+            print(value)
 
 
 if __name__ == "__main__":
     proc = Processor()
     df = proc.get_processed_data()
-    del df['CLI_ID']
-    x_std = StandardScaler().fit_transform(df)
+    d = pd.DataFrame()
+    amount = ['N_PURCHASE', 'T_PRICE', 'N_BASKET']
+    for col in amount:
+        d[col] = df[col]
+
+    proc.optimal_eps_DBSCAN(df, 2)
+
+    # clust = Clusterer()
+    # p = clust.get_predicted_data()
+    # print(len(p))
+    # print(len(p[p['cluster'] == -1]))
 
 
-    #pcac = proc.pca_component(93, df, False)
-    #proc.looking_for_most_relevant_n_cluster(pcac)
+
+    # t = pd.DataFrame()
+    # for col in amount:
+    #     t[col] = df[col]
+    # proc.optimal_eps_DBSCAN(t, 2)
+
+
     # clusterer = Clusterer()
     # ids = [1490281, 13290776, 20163348, 20200041, 20561854, 20727324, 20791601, 21046542, 21239163,
     #  21351166, 21497331, 21504227, 21514622, 69813934, 71891681, 85057203]
