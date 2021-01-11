@@ -10,7 +10,7 @@ from json import dumps
     Paths
 """
 # path to project directory
-project_dir = Path(__file__).parent.parent
+project_dir = Path(__file__).parent.parent.parent
 # path to processed data
 proc_data_dir = project_dir.joinpath("processed-data")
 user_proc_file = proc_data_dir.joinpath("user_proc_2.pkl")

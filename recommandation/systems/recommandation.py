@@ -3,6 +3,21 @@ import pandas as pd
 from pandas import DataFrame
 from sklearn.cluster import KMeans
 from enum import Enum
+from pathlib import Path
+
+"""
+    Paths
+"""
+# path to project directory
+project_dir = Path(__file__).parent.parent.parent
+# path to processed data
+proc_data_dir = project_dir.joinpath("processed-data")
+user_proc_cluster_file = proc_data_dir.joinpath("user_proc_cluster.pkl")
+user_proc_file = proc_data_dir.joinpath("user_proc.pkl")
+# path to data source
+data_dir = project_dir.joinpath("data")
+kado_file = data_dir.joinpath("KaDo.csv")
+
 
 class Category(Enum):
     FAMILLE = "FAMILLE"
@@ -22,7 +37,7 @@ class Column(Enum):
 
 
 def initDataFrame(nrows=100000):
-    metadata = pd.read_csv('KaDo.csv', low_memory=False, nrows=nrows)
+    metadata = pd.read_csv(kado_file, low_memory=False, nrows=nrows)
     return metadata
 
 # just for the sick of it
@@ -181,6 +196,7 @@ def getRecomandation(my_client_id, rowCsv=100000):
 
     # getting prefered familly for my_client_id 
     clientMostPopularFamilleDf = mostPopularFamille(metadata.loc[metadata['CLI_ID'].isin([my_client_id])])
+    print(clientMostPopularFamilleDf)
     clientMostPopularFamille = clientMostPopularFamilleDf["FAMILLE"].tolist()[0]
 
     # getting a model that register all user with their CLID_ID and their percent of buyed item by familly
