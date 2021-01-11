@@ -8,6 +8,9 @@ import pandas as pd
 PDF_PATH = './res/statistical_report.pdf'
 PRINT_PDF = False
 
+LABEL_MOIS = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre",
+                  "Novembre", "Decembre"]
+MOIS_TICKS = [0.,1.,2.,3., 4.,5.,6.,7., 8., 9., 10., 11.]
 def numbersOfItems(data):
     """Numbers of items per Maille, Univers and Family """
     univers = data.value_counts(['UNIVERS'])
@@ -157,11 +160,25 @@ def histPricePayedByMonth(data):
     """histogram of x: sum of price of ticket/ y : number of ticket"""
     sums = data.groupby(['MOIS_VENTE'])
     sums['PRIX_NET'].sum().plot(kind='bar')
-    label_mois=["Janvier","Fevrier","Mars","Avril","Mai","Juin", "Juillet","Aout","Septembre", "Octobre","Novembre","Decembre"]
 
-    plt.xticks([0.,1.,2.,3., 4.,5.,6.,7., 8., 9., 10., 11.], label_mois)
+    plt.xticks( MOIS_TICKS, LABEL_MOIS)
 
     plt.suptitle('Somme dépensé par Mois')
+    plt.show()
+
+def compareHistPricePayedByMonth(data_user, data_full):
+    """Compare Price spend by month between a big dataset (full, cluster) with the data of a user"""
+    sums = data_user.groupby(['MOIS_VENTE'])['PRIX_NET'].sum()
+    sums_full = data_full.groupby(['MOIS_VENTE'])['PRIX_NET'].mean()
+    frame = pd.DataFrame({
+        "Utilisateur": sums,
+        "Ensemble Du dataset": sums_full
+    })
+    frame.plot(kind='bar')
+    plt.xticks(MOIS_TICKS, LABEL_MOIS)
+
+    plt.legend(loc='upper right')
+    plt.suptitle('Comparaison des achats mensuels entre notre utilisateur et le dataset')
     plt.show()
 
 def bestCliForTest(data):
@@ -214,32 +231,7 @@ def printData(data):
 
 def compareResult(data_user, data_full):
     """Compare a big dataset (full, cluster) with the data of a user"""
-    sums = data_user.groupby(['MOIS_VENTE'])
-    label_mois = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre",
-                  "Novembre", "Decembre"]
-
-
-    sums_full = data_full.groupby('CLI_ID')\
-        .filter(lambda x: len(x) >100)\
-        .groupby(['MOIS_VENTE'])
-
-    print (sums['PRIX_NET'].sum())
-    print(sums_full['PRIX_NET'].sum())
-    revert_sums = sums['PRIX_NET'].sum()
-    revert_full =sums_full['PRIX_NET'].mean()
-    frame =  pd.DataFrame({
-        "A": revert_sums,
-        "B": revert_full
-    })
-    frame.plot(kind='bar')
-
-   # plt.bar(x=revert_sums,height=1, alpha=0.5, label='User')
-    #plt.bar(x=revert_full,height=1,  alpha=0.5, label='Moyenne du dataset')
-    plt.legend(loc='upper right')
-    plt.suptitle('Full data')
-    plt.show()
-
-
+    compareHistPricePayedByMonth(data_user, data_full)
 
 
 def removePdf():
