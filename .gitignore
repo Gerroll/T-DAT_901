@@ -128,15 +128,18 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# original dataset
+# main data
 KaDo.csv
 /data
 
-# processed data
-/processed-data
-
-# VS Code stuff
+# Visual Studio Code stuff
 .vscode/
 
-# Intellij stuff
+# Pycharm stuff
 .idea
+
+# pickle file package
+processed-data/
+
+# T-DAT pdf
+T-DAT-901_project.pdf
