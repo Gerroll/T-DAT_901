@@ -1,6 +1,7 @@
 import math
 import os
 import matplotlib.pyplot as plt
+import datetime
 from matplotlib.backends.backend_pdf import PdfPages
 import pandas as pd
 
@@ -105,7 +106,7 @@ def histPriceByTicket(data):
 
     if PRINT_PDF is False:
       plt.show()
-    plt.close()
+      plt.close()
 
     return fig
 
@@ -121,24 +122,36 @@ def histTicketByFamille(data):
 
     if PRINT_PDF is False:
       plt.show()
-    plt.close()
+      plt.close()
 
 def pieTicketByFamille(data):
     """piechart of quantity of sales in every Famille """
+    fig = plt.figure()
     sums = data.value_counts('FAMILLE')
     plt.pie(sums, labels=sums.index, autopct='%1.1f%%')
     plt.axis = 'equal'
     plt.suptitle('Nombre de produits achetés par famille')
-    plt.show()
+
+    if PRINT_PDF is False:
+      plt.show()
+      plt.close()
+
+    return fig
 
 def piePriceByFamille(data):
     """piechart of volume of price in every Famille for a given dataset """
+    fig = plt.figure()
     sums = data.groupby('FAMILLE').sum()
     print(sums)
     plt.pie(sums['PRIX_NET'], labels=sums.index, autopct='%1.1f%%',startangle=90)
     plt.axis = 'equal'
     plt.suptitle('Somme dépensé par famille')
-    plt.show()
+
+    if PRINT_PDF is False:
+      plt.show()
+      plt.close()
+
+    return fig
 
 
 
@@ -152,22 +165,29 @@ def histNumberOfTicketByMonth(data):
 
     if PRINT_PDF is False:
       plt.show()
-    plt.close()
+      plt.close()
 
     return fig
 
 def histPricePayedByMonth(data):
     """histogram of x: sum of price of ticket/ y : number of ticket"""
+    fig = plt.figure()
     sums = data.groupby(['MOIS_VENTE'])
     sums['PRIX_NET'].sum().plot(kind='bar')
 
     plt.xticks( MOIS_TICKS, LABEL_MOIS)
 
     plt.suptitle('Somme dépensé par Mois')
-    plt.show()
+
+    if PRINT_PDF is False:
+      plt.show()
+      plt.close()
+
+    return fig
 
 def compareHistPricePayedByMonth(data_user, data_full):
     """Compare Price spend by month between a big dataset (full, cluster) with the data of a user"""
+    fig = plt.figure()
     sums = data_user.groupby(['MOIS_VENTE'])['PRIX_NET'].sum()
     sums_full = data_full.groupby(['MOIS_VENTE'])['PRIX_NET'].mean()
     frame = pd.DataFrame({
@@ -179,7 +199,12 @@ def compareHistPricePayedByMonth(data_user, data_full):
 
     plt.legend(loc='upper right')
     plt.suptitle('Comparaison des achats mensuels entre notre utilisateur et le dataset')
-    plt.show()
+    
+    if PRINT_PDF is False:
+      plt.show()
+      plt.close()
+
+    return fig
 
 def bestCliForTest(data):
     """return a subset of the data with the cli_id that has the most items buyed in the subset  """
@@ -194,33 +219,17 @@ def getCliData(data, client_id):
 
 def printData(data):
     """Display values and plot about the dataset"""
-    pdf = generatePdf()
 
-    # Histograms
-    # fig1 = histTicketByFamille(data)
-
-    fig2 = histNumberOfTicketByMonth(data)
-    fig3 = histPriceByTicket(data)
-
-    # fig4 = histPricePayedByMonth(data)
-
-
-    # save figures for now - TODO save figs to generated pdf
-    if PRINT_PDF is True:
-      saveFig(fig2, 'histNumberOfTicketByPrice')
-      saveFig(fig3, 'histPriceByTicket')
-    else:
-      # remove the pdf
-     removePdf()
+    figs = [] # our array of generated figs
 
     #Pie
-    pieTicketByFamille(data)
-    piePriceByFamille(data)
+    figs.append(pieTicketByFamille(data))
+    figs.append(piePriceByFamille(data))
 
-    histNumberOfTicketByMonth(data)
-    histPriceByTicket(data)
-
-    histPricePayedByMonth(data)
+    # Histograms
+    figs.append(histNumberOfTicketByMonth(data))
+    figs.append(histPriceByTicket(data))
+    figs.append(histPricePayedByMonth(data))
 
     numbersOfItems(data)
     meanAndStdNumbersOfItemByClients(data)
@@ -228,6 +237,18 @@ def printData(data):
 
     mostPopularInUnivers(data)
     mostPopularInFamille(data)
+
+    # save figs to generated pdf
+    if PRINT_PDF is True:
+      with PdfPages(PDF_PATH) as pdf:
+        print('Save fig into pdf')
+        for fig in figs:
+          saveFigInPdf(pdf, fig)
+
+        setPdfMetadata(pdf)
+    else:
+      # remove the pdf
+     removePdf()
 
 def compareResult(data_user, data_full):
     """Compare a big dataset (full, cluster) with the data of a user"""
@@ -243,5 +264,17 @@ def generatePdf():
   return PdfPages(PDF_PATH)
 
 def saveFig(fig, name):
-  """Add a fig to the pdf"""
+  """Save a fig into png"""
   fig.savefig(f'./res/{name}.png')
+
+def saveFigInPdf(pdf, fig):
+  """Save a fig in pdf"""
+  pdf.savefig(fig)
+
+def setPdfMetadata(pdf):
+  """Set the pdf's metadata"""
+  d = pdf.infodict()
+  d['Title'] = 'Statistical Report'
+  d['Author'] = u'Théo Walcker, Maxime Gavens, Arnaud Brown, Jean Bosc & Mathieu Dufour'
+  d['Subject'] = f'A statistical report of the client'
+  d['CreationDate'] = datetime.datetime.today()

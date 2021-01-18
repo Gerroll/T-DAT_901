@@ -59,8 +59,5 @@ if __name__ == "__main__":
     printStatisticalReport(metadata, clientId)
     #compareResult(bestCliForTest(metadata),metadata)
 
-    # generate pdf
-
-
 
 
