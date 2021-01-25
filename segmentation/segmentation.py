@@ -23,7 +23,7 @@ pd.set_option('display.max_columns', 500)
 # path to project directory
 project_dir = Path(__file__).parent.parent
 # path to processed data
-proc_data_dir = project_dir.joinpath("processed-data")
+proc_data_dir = project_dir.joinpath("assets").joinpath('processed')
 segmentation_proc_file = proc_data_dir.joinpath("segmentation_proc.pkl")
 segmentation_cluster_file = proc_data_dir.joinpath("segmentation_cluster.pkl")
 segmentation_cluster_middle_file = proc_data_dir.joinpath("segmentation_cluster_middle.pkl")
