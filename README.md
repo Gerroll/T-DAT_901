@@ -3,7 +3,7 @@
 
 # Init
 
-`Récupérer "KaDo.csv" sur gandalf, à mettre a la racine du project`
+`Récupérer "KaDo.csv" sur gandalf, à mettre dans le dossier assets/resource`
 
 
 # Ex: csv file of 7 million lines (KaDo.csv)
