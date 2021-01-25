@@ -1,6 +1,7 @@
 import math
 import os
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as path_effects
 import datetime
 from matplotlib.backends.backend_pdf import PdfPages
 import pandas as pd
@@ -210,14 +211,14 @@ def bestCliForTest(data):
     """return a subset of the data with the cli_id that has the most items buyed in the subset  """
     return data[data['CLI_ID'] == data['CLI_ID'].value_counts().idxmax()]
 
-def getCliData(data, client_id):
+def getCliData(data, clientId):
     """return a subset of the data with the cli_id specified  """
-    if client_id:
-      return data[data['CLI_ID'] == client_id]
+    if clientId:
+      return data[data['CLI_ID'] == clientId]
     else:
       return data
 
-def printData(data):
+def printData(data, clientId):
     """Display values and plot about the dataset"""
 
     figs = [] # our array of generated figs
@@ -241,6 +242,9 @@ def printData(data):
     # save figs to generated pdf
     if PRINT_PDF is True:
       with PdfPages(PDF_PATH) as pdf:
+        print('Save text into pdf')
+        saveFigInPdf(pdf, generatePdfHomepage(clientId))
+        
         print('Save fig into pdf')
         for fig in figs:
           saveFigInPdf(pdf, fig)
@@ -270,6 +274,15 @@ def saveFig(fig, name):
 def saveFigInPdf(pdf, fig):
   """Save a fig in pdf"""
   pdf.savefig(fig)
+
+def generatePdfHomepage(clientId):
+  fig = plt.figure()
+  text = fig.text(0.5, 0.5, f'T-DAT-901\nRapport statistique\nClient #{clientId}\n\n'
+  'Produit par Maxime Gavens, Théo Walcker,\n Jean Bosc, Arnaud Brown et Mathieu Dufour\n\n'
+  f'Le {datetime.date.today()}',
+                ha='center', va='center', size=20)
+  # text.set_path_effects([path_effects.Normal()])
+  return fig
 
 def setPdfMetadata(pdf):
   """Set the pdf's metadata"""

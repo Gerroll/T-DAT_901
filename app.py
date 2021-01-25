@@ -26,7 +26,7 @@ def printStatisticalReport(metadata, clientId):
     # debut = time.time()
 
     #whole dataset
-    printData(metadata)
+    printData(metadata, clientId)
 
 
     # Only with the best client
