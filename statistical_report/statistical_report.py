@@ -5,10 +5,9 @@ import matplotlib.patheffects as path_effects
 import datetime
 from matplotlib.backends.backend_pdf import PdfPages
 import pandas as pd
+from .pdf import PDF
 
-
-PDF_PATH = './res/statistical_report.pdf'
-PRINT_PDF = False
+PRINT_PDF = True
 
 LABEL_MOIS = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre",
                   "Novembre", "Decembre"]
@@ -239,55 +238,15 @@ def printData(data, clientId):
     mostPopularInUnivers(data)
     mostPopularInFamille(data)
 
-    # save figs to generated pdf
-    if PRINT_PDF is True:
-      with PdfPages(PDF_PATH) as pdf:
-        print('Save text into pdf')
-        saveFigInPdf(pdf, generatePdfHomepage(clientId))
-        
-        print('Save fig into pdf')
-        for fig in figs:
-          saveFigInPdf(pdf, fig)
+    # PDF
+    pdf = PDF(clientId, PRINT_PDF)
 
-        setPdfMetadata(pdf)
-    else:
-      # remove the pdf
-     removePdf()
+    print('Save fig into pdf')
+    for fig in figs:
+      pdf.saveFigInPdf(fig)
+
+    pdf.closePdf()
 
 def compareResult(data_user, data_full):
     """Compare a big dataset (full, cluster) with the data of a user"""
     compareHistPricePayedByMonth(data_user, data_full)
-
-
-def removePdf():
-  """Delete the pdf"""
-  os.remove(PDF_PATH)
-
-def generatePdf():
-  """Create a pdf and return it"""
-  return PdfPages(PDF_PATH)
-
-def saveFig(fig, name):
-  """Save a fig into png"""
-  fig.savefig(f'./res/{name}.png')
-
-def saveFigInPdf(pdf, fig):
-  """Save a fig in pdf"""
-  pdf.savefig(fig)
-
-def generatePdfHomepage(clientId):
-  fig = plt.figure()
-  text = fig.text(0.5, 0.5, f'T-DAT-901\nRapport statistique\nClient #{clientId}\n\n'
-  'Produit par Maxime Gavens, Théo Walcker,\n Jean Bosc, Arnaud Brown et Mathieu Dufour\n\n'
-  f'Le {datetime.date.today()}',
-                ha='center', va='center', size=20)
-  # text.set_path_effects([path_effects.Normal()])
-  return fig
-
-def setPdfMetadata(pdf):
-  """Set the pdf's metadata"""
-  d = pdf.infodict()
-  d['Title'] = 'Statistical Report'
-  d['Author'] = u'Théo Walcker, Maxime Gavens, Arnaud Brown, Jean Bosc & Mathieu Dufour'
-  d['Subject'] = f'A statistical report of the client'
-  d['CreationDate'] = datetime.datetime.today()
