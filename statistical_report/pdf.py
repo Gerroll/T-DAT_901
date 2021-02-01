@@ -8,15 +8,10 @@ from matplotlib.backends.backend_pdf import PdfPages
 PDF_PATH = './res/statistical_report.pdf'
 
 class PDF():
-  def __init__(self, clientId, printPdf=False):
+  def __init__(self, clientId):
     self.clientId = clientId
-    self.printPdf = printPdf
-
-    if self.printPdf is True:
-      self.pdf = PdfPages(PDF_PATH)
-      self.saveFigInPdf(self.generatePdfHomepage())
-    else:
-      self.removePdf()
+    self.pdf = PdfPages(PDF_PATH)
+    self.saveFigInPdf(self.generatePdfHomepage())
 
   def closePdf(self):
     """Close the pdf"""
@@ -32,10 +27,16 @@ class PDF():
 
   def saveFigInPdf(self, fig):
     """Save a fig in pdf"""
-    if self.printPdf is True:
-      self.pdf.savefig(fig)
+    self.pdf.savefig(fig)
+
+  def textToFig(self, text):
+    fig = plt.figure()
+    text = fig.text(0.5, 0.5, text, ha='center', va='center', size=20)
+    # text.set_path_effects([path_effects.Normal()])
+    return fig
 
   def generatePdfHomepage(self):
+    """Generate homepage"""
     fig = plt.figure()
     text = fig.text(0.5, 0.5, f'T-DAT-901\nRapport statistique\nClient #{self.clientId}\n\n'
     'Produit par Maxime Gavens, Théo Walcker,\n Jean Bosc, Arnaud Brown et Mathieu Dufour\n\n'

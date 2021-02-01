@@ -7,10 +7,11 @@ from matplotlib.backends.backend_pdf import PdfPages
 import pandas as pd
 from .pdf import PDF
 
-PRINT_PDF = True
+PRINT_PDF = False
 
 LABEL_MOIS = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre",
                   "Novembre", "Decembre"]
+EVENTS = ["Soldes d'hiver", "St-Valentin", "Soldes d'été", "Black Friday", "Cyber Monday", "Noël"]
 MOIS_TICKS = [0.,1.,2.,3., 4.,5.,6.,7., 8., 9., 10., 11.]
 def numbersOfItems(data):
     """Numbers of items per Maille, Univers and Family """
@@ -185,6 +186,35 @@ def histPricePayedByMonth(data):
 
     return fig
 
+def getEventRelatedToPricePayedByMonth(data):
+
+  sums = data.groupby(['MOIS_VENTE']).sum().sort_values(by=['PRIX_NET'], ascending=False)
+  twoBestMonths = sums.take([0, 1])
+
+  firstMonth = int(pd.DataFrame(twoBestMonths)['TICKET_ID'].keys()[0])
+  secondMonth = int(pd.DataFrame(twoBestMonths)['TICKET_ID'].keys()[1])
+
+  text = f"L'utilisateur dépense beaucoup aux mois\nde {LABEL_MOIS[firstMonth-1]} et {LABEL_MOIS[secondMonth-1]} pour :\n"
+  if firstMonth == 1 or secondMonth == 1: # solde hiver
+    text = text + f"- {EVENTS[0]}\n"
+  if firstMonth == 2 or secondMonth == 2: # solde hiver
+    text = text + f"- {EVENTS[0]}\n"
+  if firstMonth == 2 or secondMonth == 2: # st valentin
+    text = text + f"- {EVENTS[1]}\n"
+  if firstMonth == 6 or secondMonth == 6: # solde été
+    text = text + f"- {EVENTS[2]}\n"
+  if firstMonth == 7 or secondMonth == 7: # solde été
+    text = text + f"- {EVENTS[2]}\n"
+  if firstMonth == 11 or secondMonth == 11: # black friday
+    text = text + f"- {EVENTS[10]}\n"
+  if firstMonth == 11 or secondMonth == 11: # cyber monday
+    text = text + f"- {EVENTS[10]}\n"
+  if firstMonth == 12 or secondMonth == 12: # noel
+    text = text + f"- {EVENTS[11]}\n"
+  
+  print(text)
+  return text
+
 def compareHistPricePayedByMonth(data_user, data_full):
     """Compare Price spend by month between a big dataset (full, cluster) with the data of a user"""
     fig = plt.figure()
@@ -238,14 +268,22 @@ def printData(data, clientId):
     mostPopularInUnivers(data)
     mostPopularInFamille(data)
 
+    eventText = getEventRelatedToPricePayedByMonth(data)
+
     # PDF
-    pdf = PDF(clientId, PRINT_PDF)
+    if PRINT_PDF is True:
+      pdf = PDF(clientId)
 
-    print('Save fig into pdf')
-    for fig in figs:
-      pdf.saveFigInPdf(fig)
+      # save event
+      pdf.saveFigInPdf(pdf.textToFig(eventText))
 
-    pdf.closePdf()
+      # save our generated figs hists/pies/charts
+      print('Save fig into pdf')
+      for fig in figs:
+        pdf.saveFigInPdf(fig)
+      
+
+      pdf.closePdf()
 
 def compareResult(data_user, data_full):
     """Compare a big dataset (full, cluster) with the data of a user"""
