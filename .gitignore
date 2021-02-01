@@ -122,7 +122,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-.dmypy.json
+.dmypy.json 
 dmypy.json
 
 # Pyre type checker
@@ -132,8 +132,7 @@ dmypy.json
 KaDo.csv
 /data
 
-# processed data
-/processed-data
+/assets
 
 # VS Code stuff
 .vscode/
