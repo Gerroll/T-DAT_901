@@ -1,12 +1,13 @@
 import math
 import os
 import matplotlib.pyplot as plt
-import matplotlib.patheffects as path_effects
 import datetime
 from matplotlib.backends.backend_pdf import PdfPages
 import pandas as pd
 from .pdf import PDF
 
+
+PDF_PATH = './res/statistical_report.pdf'
 PRINT_PDF = False
 
 LABEL_MOIS = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre",
@@ -29,7 +30,6 @@ def numbersOfItems(data):
     print()
 
 
-
 def mostPopularInUnivers(data):
     """For a given Dataset, the most popular items with their libelle and their count  """
     popular_items = data.groupby(['UNIVERS', 'LIBELLE']).size().to_frame(name='size').reset_index().sort_values(
@@ -37,7 +37,6 @@ def mostPopularInUnivers(data):
     print("Objets les plus populaires par univers")
     print(popular_items.drop_duplicates(subset=['UNIVERS']).head())
     print()
-
 
 
 def mostPopularInFamille(data):
@@ -49,11 +48,11 @@ def mostPopularInFamille(data):
     print()
 
 
-
 def meanPriceInFamille(data):
     """ Mean price for items  by Famille """
     mean_price = data.groupby(['FAMILLE'])
     print(mean_price['FAMILLE', "PRIX_NET"].describe())
+
 
 def meanPriceOfATicket(data):
     """Means price spend on tickets given by the dataset """
@@ -69,6 +68,7 @@ def meanPriceInUnivers(data):
     print()
 
     return mean_price
+
 
 def meanAndStdNumbersOfItemByClients(data):
     """ Mean and std numbers of items per Ticket """
@@ -93,23 +93,26 @@ def histPriceByTicket(data):
     """Histogram of x: Price of ticket / y: Number of Ticket"""
     fig = plt.figure()
     priceByTicket = data.groupby("TICKET_ID")["PRIX_NET"].sum()
-    #when the range is to high, there is nothing to see
+    # when the range is to high, there is nothing to see
     if priceByTicket.max() <= 250:
         max = priceByTicket.max()
     else:
         max = 250
     # To have a consistant number of bins no matter the quantity of value
-    numberOfBins = int(math.log(priceByTicket.size,2))
-    plotprice = priceByTicket.hist(bins=numberOfBins,range=[0,max])
+    numberOfBins = int(math.log(priceByTicket.size, 2))
+    if numberOfBins == 0:
+        numberOfBins = 1
+    plotprice = priceByTicket.hist(bins=numberOfBins, range=[0, max])
     plotprice.set_xlabel("Prix du panier")
     plotprice.set_ylabel("Nombre de paniers")
     plt.suptitle("Nombre de paniers par prix")
 
     if PRINT_PDF is False:
-      plt.show()
-      plt.close()
+        plt.show()
+        plt.close()
 
     return fig
+
 
 def histTicketByFamille(data):
     """histogram of every Famille with the y: number of item bought /x : price of the item o"""
@@ -122,8 +125,9 @@ def histTicketByFamille(data):
     plt.suptitle('Nombre de produits achetés par famille')
 
     if PRINT_PDF is False:
-      plt.show()
-      plt.close()
+        plt.show()
+        plt.close()
+
 
 def pieTicketByFamille(data):
     """piechart of quantity of sales in every Famille """
@@ -134,10 +138,11 @@ def pieTicketByFamille(data):
     plt.suptitle('Nombre de produits achetés par famille')
 
     if PRINT_PDF is False:
-      plt.show()
-      plt.close()
+        plt.show()
+        plt.close()
 
     return fig
+
 
 def piePriceByFamille(data):
     """piechart of volume of price in every Famille for a given dataset """
@@ -147,14 +152,18 @@ def piePriceByFamille(data):
     plt.pie(sums['PRIX_NET'], labels=sums.index, autopct='%1.1f%%',startangle=90)
     plt.axis = 'equal'
     plt.suptitle('Somme dépensé par famille')
-
     if PRINT_PDF is False:
-      plt.show()
-      plt.close()
+        plt.show()
+        plt.close()
 
     return fig
 
-
+def printFamilleMaxSpend(data):
+    """Print the famille with the max euros spent """
+    sums = data.groupby('FAMILLE').sum()
+    line_to_print = 'La famille préférée de ce client est "' + sums["PRIX_NET"].idxmax()+\
+                    '" avec ' + round(sums["PRIX_NET"].max(), 2).__str__() + "€ dépensés."
+    print(line_to_print)
 
 def histNumberOfTicketByMonth(data):
     """histogram of x: month/ y : number of ticket"""
@@ -165,10 +174,11 @@ def histNumberOfTicketByMonth(data):
     plt.suptitle('Nombre de produits achetés par Mois')
 
     if PRINT_PDF is False:
-      plt.show()
-      plt.close()
+        plt.show()
+        plt.close()
 
     return fig
+
 
 def histPricePayedByMonth(data):
     """histogram of x: sum of price of ticket/ y : number of ticket"""
@@ -176,13 +186,13 @@ def histPricePayedByMonth(data):
     sums = data.groupby(['MOIS_VENTE'])
     sums['PRIX_NET'].sum().plot(kind='bar')
 
-    plt.xticks( MOIS_TICKS, LABEL_MOIS)
+    plt.xticks(MOIS_TICKS, LABEL_MOIS)
 
     plt.suptitle('Somme dépensé par Mois')
 
     if PRINT_PDF is False:
-      plt.show()
-      plt.close()
+        plt.show()
+        plt.close()
 
     return fig
 
@@ -195,25 +205,25 @@ def getEventRelatedToPricePayedByMonth(data):
   secondMonth = int(pd.DataFrame(twoBestMonths)['TICKET_ID'].keys()[1])
 
   text = f"L'utilisateur dépense beaucoup aux mois\nde {LABEL_MOIS[firstMonth-1]} et {LABEL_MOIS[secondMonth-1]} pour :\n"
-  if firstMonth == 1 or secondMonth == 1: # solde hiver
-    text = text + f"- {EVENTS[0]}\n"
-  if firstMonth == 2 or secondMonth == 2: # solde hiver
+  if isSoldeHiver(firstMonth) or isSoldeHiver(secondMonth): # solde hiver
     text = text + f"- {EVENTS[0]}\n"
   if firstMonth == 2 or secondMonth == 2: # st valentin
     text = text + f"- {EVENTS[1]}\n"
-  if firstMonth == 6 or secondMonth == 6: # solde été
+  if isSoldeEte(firstMonth) or isSoldeEte(secondMonth): # solde été
     text = text + f"- {EVENTS[2]}\n"
-  if firstMonth == 7 or secondMonth == 7: # solde été
-    text = text + f"- {EVENTS[2]}\n"
-  if firstMonth == 11 or secondMonth == 11: # black friday
-    text = text + f"- {EVENTS[10]}\n"
-  if firstMonth == 11 or secondMonth == 11: # cyber monday
-    text = text + f"- {EVENTS[10]}\n"
+  if firstMonth == 11 or secondMonth == 11: # black friday - Cyber Monday
+    text = text + f"- {EVENTS[3]}\n"
+    text = text + f"- {EVENTS[4]}\n"
   if firstMonth == 12 or secondMonth == 12: # noel
-    text = text + f"- {EVENTS[11]}\n"
-  
+    text = text + f"- {EVENTS[5]}\n"
+
   print(text)
   return text
+
+def isSoldeHiver(month):
+    return month == 1 or month == 2
+def isSoldeEte(month):
+    return month == 6 or month == 7
 
 def compareHistPricePayedByMonth(data_user, data_full):
     """Compare Price spend by month between a big dataset (full, cluster) with the data of a user"""
@@ -229,30 +239,33 @@ def compareHistPricePayedByMonth(data_user, data_full):
 
     plt.legend(loc='upper right')
     plt.suptitle('Comparaison des achats mensuels entre notre utilisateur et le dataset')
-    
+
     if PRINT_PDF is False:
-      plt.show()
-      plt.close()
+        plt.show()
+        plt.close()
 
     return fig
+
 
 def bestCliForTest(data):
     """return a subset of the data with the cli_id that has the most items buyed in the subset  """
     return data[data['CLI_ID'] == data['CLI_ID'].value_counts().idxmax()]
 
+
 def getCliData(data, clientId):
     """return a subset of the data with the cli_id specified  """
     if clientId:
-      return data[data['CLI_ID'] == clientId]
+        return data[data['CLI_ID'] == clientId]
     else:
-      return data
+        return data
+
 
 def printData(data, clientId):
     """Display values and plot about the dataset"""
 
-    figs = [] # our array of generated figs
-
-    #Pie
+    figs = []  # our array of generated figs
+    printFamilleMaxSpend(data)
+    # Pie
     figs.append(pieTicketByFamille(data))
     figs.append(piePriceByFamille(data))
 
@@ -281,9 +294,10 @@ def printData(data, clientId):
       print('Save fig into pdf')
       for fig in figs:
         pdf.saveFigInPdf(fig)
-      
+
 
       pdf.closePdf()
+
 
 def compareResult(data_user, data_full):
     """Compare a big dataset (full, cluster) with the data of a user"""
