@@ -247,7 +247,7 @@ class Clusterer:
         print("start fitting familles")
         # 6 find from elbow method
         num_cluster = 6
-        clusterer = KMeans(n_clusters=num_cluster)
+        clusterer = KMeans(n_clusters=num_cluster, random_state=1)
         clusterer.fit(df)
         self.__data['C_FAMILLE'] = clusterer.labels_
 
@@ -263,7 +263,7 @@ class Clusterer:
         print("start fitting mois")
         # 13 find from elbow method
         num_cluster = 13
-        clusterer2 = KMeans(n_clusters=num_cluster)
+        clusterer2 = KMeans(n_clusters=num_cluster, random_state=1)
         clusterer2.fit(df2)
         self.__data['C_MOIS'] = clusterer2.labels_
 
