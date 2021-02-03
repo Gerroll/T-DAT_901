@@ -1,6 +1,4 @@
-import random
 import pandas as pd
-from pandas import DataFrame
 from sklearn.cluster import KMeans
 from enum import Enum
 from pathlib import Path
@@ -11,12 +9,11 @@ from pathlib import Path
 # path to project directory
 project_dir = Path(__file__).parent.parent.parent
 # path to processed data
-proc_data_dir = project_dir.joinpath("processed-data")
-user_proc_cluster_file = proc_data_dir.joinpath("user_proc_cluster.pkl")
-user_proc_file = proc_data_dir.joinpath("user_proc.pkl")
+processed_dir = project_dir.joinpath('assets').joinpath('processed')
+recommendation_proc_file = processed_dir.joinpath('recommendation_proc.pkl')
+recommendation_clust_file = processed_dir.joinpath('recommendation_clust.pkl')
 # path to data source
-data_dir = project_dir.joinpath("data")
-kado_file = data_dir.joinpath("KaDo.csv")
+kado_file = project_dir.joinpath("data").joinpath("KaDo.csv")
 
 
 class Category(Enum):
@@ -36,31 +33,9 @@ class Column(Enum):
     CLI_ID = "CLI_ID"
 
 
-def init_dataframe(nrows=100000):
-    metadata = pd.read_csv(kado_file, low_memory=False, nrows=nrows)
-    return metadata
-
-
-# just for the sick of it
-def print_basic_data(metadata):
-    print(metadata.head(1))
-    print()
-    print(len(metadata["LIBELLE"].value_counts(dropna=False)))
-    print()
-    print(len(metadata["CLI_ID"].value_counts(dropna=False)))
-    print()
-    print(len(metadata["UNIVERS"].value_counts(dropna=False)))
-    print()
-    print(len(metadata["MAILLE"].value_counts(dropna=False)))
-    print()
-    print(len(metadata["FAMILLE"].value_counts(dropna=False)))
-
-
-############
-###
-### RECOMANDATION BY SCORE AND FAMILLY PREFERENCE
-###
-############
+#
+# RECOMANDATION BY SCORE AND FAMILLY PREFERENCE
+#
 def most_popular_famille(data):
     """For a given Dataset, the most popular items with their libelle and their count  """
     FAMILLEUNIVERS = data.groupby(['FAMILLE','LIBELLE']).size().to_frame(name='size').reset_index().sort_values(by=['size'],ascending=False)
@@ -100,14 +75,6 @@ def get_list_of_libelle_of_the_client_did_buy(metadata, client_id: int):
     client_list_article_dataframe = df.loc[df[Column.CLI_ID.name] == client_id]
     label_list_df = client_list_article_dataframe.groupby(['FAMILLE', 'MAILLE', 'UNIVERS', 'LIBELLE']).size().reset_index()
     return label_list_df
-
-
-def get_list_of_libelle_of_the_client_did_not_buy(metadata, client_id: int):
-    df = get_libelle_score_df_with_categories(metadata)
-    list_buyed_label = get_list_of_libelle_of_the_client_did_buy(metadata, client_id)['LIBELLE'].tolist()
-    df_by_label = df.groupby(['FAMILLE', 'MAILLE', 'UNIVERS', 'LIBELLE']).size().reset_index()
-    df_label_never_buyed = df_by_label.loc[~df_by_label['LIBELLE'].isin(list_buyed_label)].reset_index()[['FAMILLE', 'MAILLE', 'UNIVERS', 'LIBELLE']]
-    return df_label_never_buyed
 
 
 def get_not_buy_label_df_with_score_df(metadata, client_id):
@@ -151,7 +118,7 @@ def get_user_proportion_by_family(metadata, famille_list):
 
 
 def user_proportion_by_famille_to_kmean_format(userPercentByFamilly, famille_list):
-    data_k_mean = {}
+    data_k_mean = {'CLI_ID': []}
     for f in famille_list:
         data_k_mean[f] = []
     for u in userPercentByFamilly:
@@ -161,87 +128,72 @@ def user_proportion_by_famille_to_kmean_format(userPercentByFamilly, famille_lis
         for famille, value in u['FAMILLE'].items():
             val = int(value * 100 / itemBuyed)
             data_k_mean[famille].append(val)
+        data_k_mean['CLI_ID'].append(u['CLI_ID'])
     return data_k_mean
 
 
-def get_cli_index_from_cli_id(userPercentByFamilly, client_id):
-    for i, user in enumerate(userPercentByFamilly):
-        if user['CLI_ID'] == client_id:
-            return i
-    return 0
+def get_cli_id_list_of_cli_cluster_group(predictedDf, cli_id):
+    cluster_label = predictedDf[predictedDf['CLI_ID'] == cli_id]['cluster'].iloc[0]
+    return list(predictedDf[predictedDf['cluster'] == cluster_label]['CLI_ID'])
 
 
-def create_client_for_kmean_predict(kmeanFormat, famille_list, client_index):
-    client = [[]]
-    for f in famille_list:
-        client[0].append(kmeanFormat[f][client_index])
-    return client
-
-
-def fit_kmean_model(kmeanFormat, famille_list):
-    df = pd.DataFrame(kmeanFormat, columns = famille_list)
-    kmeans = KMeans(n_clusters = 8).fit(df)
-    return kmeans
-
-
-def get_cli_id_list_of_cli_cluster_group(fitedKmeanModel, userPercentByFamilly, client):
-    prediction = fitedKmeanModel.predict(client)
-    client_to_include = []
-    for i in range(len(fitedKmeanModel.labels_)):
-        if prediction[0] == fitedKmeanModel.labels_[i]:
-            client_to_include.append(userPercentByFamilly[i]['CLI_ID'])
-    return client_to_include
-
-
-############
 #
 # PUBLIC FUNCTION TO USE
 #
-############
-def get_recommendation(my_client_id, rowCsv=100000):
-    metadata = init_dataframe(rowCsv)
+def get_recommendation(my_client_id):
+    metadata = pd.read_csv(kado_file)
     famille_list = metadata["FAMILLE"].unique()
 
-    # getting prefered familly for my_client_id 
-    clientMostPopularFamilleDf = most_popular_famille(metadata.loc[metadata['CLI_ID'].isin([my_client_id])])
-    print(clientMostPopularFamilleDf)
-    clientMostPopularFamille = clientMostPopularFamilleDf["FAMILLE"].tolist()[0]
+    if recommendation_clust_file.is_file():
+        # load from previous computing
+        predictedDf = pd.read_pickle(recommendation_clust_file)
+    else:
+        # getting a model that register all user with their CLID_ID and their percent of buyed item by familly
+        # [{
+        #     'CLI_ID': 123456,
+        #     'FAMILLE': {
+        #         'HYGIENE': 10,
+        #         . . .
+        #         'SOINS DU CORPS': 10,
+        #     }
+        # },
+        # {
+        #     . . .
+        # }]
+        userPercentByFamilly = get_user_proportion_by_family(metadata, famille_list)
 
-    # getting a model that register all user with their CLID_ID and their percent of buyed item by familly
-    # [{
-    #     'CLI_ID': 123456,
-    #     'FAMILLE': {
-    #         'HYGIENE': 10,
-    #         . . .
-    #         'SOINS DU CORPS': 10,
-    #     }
-    # },
-    # {
-    #     . . .
-    # }]
-    userPercentByFamilly = get_user_proportion_by_family(metadata, famille_list)
+        # build dataframe from model
+        kmeanFormat = user_proportion_by_famille_to_kmean_format(userPercentByFamilly, famille_list)
+        predictedDf = pd.DataFrame(kmeanFormat)
 
-    # getting a model that kmean will work with
-    # column : all different familly
-    # each index represent the percent of buyed familly of the user[index]
-    kmeanFormat = user_proportion_by_famille_to_kmean_format(userPercentByFamilly, famille_list)
-    
-    # training the model with columns being all different familly
-    fitedKmeanModel = fit_kmean_model(kmeanFormat, famille_list)
+        # keep only famille column (without CLI_ID)
+        familyProportionDf = pd.DataFrame()
+        for f in famille_list:
+            familyProportionDf[f] = predictedDf[f]
 
-    # getting the equivalent index in the kmeanFormat of my client_id
-    client_index = get_cli_index_from_cli_id(userPercentByFamilly, my_client_id)
+        # fit kmeans
+        kmeans = KMeans(n_clusters=8, random_state=1).fit(familyProportionDf)
 
-    # getting my client in the needed format for the prediction
-    myClient = create_client_for_kmean_predict(kmeanFormat, famille_list, client_index)
+        # store prediction into dataframe
+        predictedDf['cluster'] = kmeans.labels_
 
-    # predict the client cluster group then 
-    # retrive the list of client_id from the cluster my my_client_id belongs to
-    cliIdList = get_cli_id_list_of_cli_cluster_group(fitedKmeanModel, userPercentByFamilly, myClient)
+        # save prediction to pickle
+        predictedDf.to_pickle(recommendation_clust_file)
+
+    # retrieve the list client id from the cluster of the current user id
+    cliIdList = get_cli_id_list_of_cli_cluster_group(predictedDf, my_client_id)
     
     # getting a dataframe with only ticket with client_id in the list
     clientClusterMetadata = metadata.loc[metadata['CLI_ID'].isin(cliIdList)].sort_values(by=['CLI_ID']).reset_index()
 
+    # getting prefered familly for my_client_id
+    clientMostPopularFamilleDf = most_popular_famille(metadata.loc[metadata['CLI_ID'].isin([my_client_id])])
+    clientMostPopularFamille = clientMostPopularFamilleDf["FAMILLE"].tolist()[0]
+
     # getting recommandation item based on best score and prefered familly of my client
     recommandation = get_recommendation_strategie_1(clientClusterMetadata, my_client_id, clientMostPopularFamille)
     return recommandation
+
+
+if __name__ == "__main__":
+    print(get_recommendation(1490281))
