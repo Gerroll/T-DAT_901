@@ -12,11 +12,9 @@ from json import dumps
 # path to project directory
 project_dir = Path(__file__).parent.parent.parent
 # path to processed data
-proc_data_dir = project_dir.joinpath("processed-data")
-user_proc_file = proc_data_dir.joinpath("user_proc_2.pkl")
+userbased_proc_file = project_dir.joinpath("assets").joinpath("processed").joinpath("userbased_proc.pkl")
 # path to data source
-data_dir = project_dir.joinpath("data")
-kado_file = data_dir.joinpath("KaDo.csv")
+kado_file = project_dir.joinpath("data").joinpath("KaDo.csv")
 
 
 class Processor:
@@ -24,8 +22,8 @@ class Processor:
         self.__raw_df = pd.read_csv(kado_file)
         self.__data = None
         # At the end of first processing, data processed dataframe are saved into pickle file
-        if user_proc_file.is_file():
-            self.__load_file()
+        if userbased_proc_file.is_file():
+            self.__data = pd.read_pickle(userbased_proc_file)
         else:
             self.__process()
 
@@ -34,9 +32,6 @@ class Processor:
 
     def get_processed_data(self):
         return self.__data
-
-    def __load_file(self):
-        self.__data = pd.read_pickle(user_proc_file)
 
     def __process(self):
         # Retrieve all unique client ID
@@ -62,8 +57,8 @@ class Processor:
         print(f"End preprocess at {datetime.now().time()}")
 
         # Save dataframe into pickle file
-        self.__data.to_pickle(user_proc_file)
-        print("File successfully saved to <PROJECT_ROOT>/processed-data/user_proc_2.pkl")
+        self.__data.to_pickle(userbased_proc_file)
+        print("Processed data successfully saved to <PROJECT_ROOT>/assets/processed/userbased_proc.pkl")
 
 
 class Counter:

@@ -1,3 +1,3 @@
-from recommandation.systems import getRecomandation
 from recommandation.systems import RSUserBased
-from recommandation.systems import RSClusterBased
+from recommandation.systems import RSClusterBased1
+from recommandation.systems import RSClusterBased2
