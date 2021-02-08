@@ -148,7 +148,7 @@ def piePriceByFamille(data):
     """piechart of volume of price in every Famille for a given dataset """
     fig = plt.figure()
     sums = data.groupby('FAMILLE').sum()
-    print(sums)
+    print(sums['PRIX_NET'])
     plt.pie(sums['PRIX_NET'], labels=sums.index, autopct='%1.1f%%',startangle=90)
     plt.axis = 'equal'
     plt.suptitle('Somme dépensé par famille')
@@ -160,7 +160,16 @@ def piePriceByFamille(data):
 
 def printFamilleMaxSpend(data):
     """Print the famille with the max euros spent """
+    print("Max count")
+    print(data.value_counts(['FAMILLE']))
     sums = data.groupby('FAMILLE').sum()
+    line_to_print = 'La famille préférée de ce client est "' + sums["PRIX_NET"].idxmax()+\
+                    '" avec ' + round(sums["PRIX_NET"].max(), 2).__str__() + "€ dépensés."
+    print(line_to_print)
+
+def printFamilleMaxBought(data):
+    """Print the famille with the max euros spent """
+    sums = data.cou('FAMILLE').count()
     line_to_print = 'La famille préférée de ce client est "' + sums["PRIX_NET"].idxmax()+\
                     '" avec ' + round(sums["PRIX_NET"].max(), 2).__str__() + "€ dépensés."
     print(line_to_print)
@@ -229,7 +238,7 @@ def compareHistPricePayedByMonth(data_user, data_full):
     """Compare Price spend by month between a big dataset (full, cluster) with the data of a user"""
     fig = plt.figure()
     sums = data_user.groupby(['MOIS_VENTE'])['PRIX_NET'].sum()
-    sums_full = data_full.groupby(['MOIS_VENTE'])['PRIX_NET'].mean()
+    sums_full = data_full.groupby(['MOIS_VENTE'])['PRIX_NET'].quantile(.80)
     frame = pd.DataFrame({
         "Utilisateur": sums,
         "Ensemble Du dataset": sums_full
@@ -239,6 +248,26 @@ def compareHistPricePayedByMonth(data_user, data_full):
 
     plt.legend(loc='upper right')
     plt.suptitle('Comparaison des achats mensuels entre notre utilisateur et le dataset')
+
+    if PRINT_PDF is False:
+        plt.show()
+        plt.close()
+
+    return fig
+
+def compareHistPricePayedByFamille(data_user, data_full):
+    """Compare Price spend by Famille between a big dataset (full, cluster) with the data of a user"""
+    fig = plt.figure()
+    sums = data_user.groupby(['FAMILLE'])['PRIX_NET'].sum()
+    sums_full = data_full.groupby(['FAMILLE'])['PRIX_NET'].quantile(.80)
+    frame = pd.DataFrame({
+        "Utilisateur": sums,
+        "Ensemble Du dataset": sums_full
+    })
+    frame.plot(kind='bar')
+
+    plt.legend(loc='upper right')
+    plt.suptitle('Comparaison des achats par famille entre notre utilisateur et le dataset')
 
     if PRINT_PDF is False:
         plt.show()
@@ -302,3 +331,4 @@ def printData(data, clientId):
 def compareResult(data_user, data_full):
     """Compare a big dataset (full, cluster) with the data of a user"""
     compareHistPricePayedByMonth(data_user, data_full)
+    compareHistPricePayedByFamille(data_user, data_full)
