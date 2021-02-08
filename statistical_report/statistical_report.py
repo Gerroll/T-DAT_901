@@ -8,7 +8,7 @@ from .pdf import PDF
 
 
 PDF_PATH = './res/statistical_report.pdf'
-PRINT_PDF = False
+PRINT_PDF = True
 
 LABEL_MOIS = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre",
                   "Novembre", "Decembre"]
@@ -84,11 +84,16 @@ def meanAndStdNumbersOfItemByClients(data):
 def meanAndNumbersOfItemsByTicket(data):
     """ Mean and std numbers of items per Ticket """
     item_description = data.value_counts(['TICKET_ID'])
+    string_to_return = ""
+    string_to_return += 'Nombre de paniers : '+ item_description.count().__str__()+ '\n';
+    string_to_return += "Quantité d'objets par paniers:"+item_description.min().__str__()\
+                        + '-' + item_description.max().__str__()+'\n'
+    string_to_return +="Nombre moyen d'objet par paniers :" + round(item_description.mean(), 2).__str__()+'\n'
+    string_to_return += "\n\n"
     print('Nombre de paniers : ', item_description.count())
     print("Quantité d'objets par paniers:", item_description.min(), '-', item_description.max())
     print("Nombre moyen d'objet par paniers :", item_description.mean())
-    print()
-
+    return string_to_return
 def histPriceByTicket(data):
     """Histogram of x: Price of ticket / y: Number of Ticket"""
     fig = plt.figure()
@@ -110,7 +115,6 @@ def histPriceByTicket(data):
     if PRINT_PDF is False:
         plt.show()
         plt.close()
-
     return fig
 
 
@@ -163,9 +167,10 @@ def printFamilleMaxSpend(data):
     print("Max count")
     print(data.value_counts(['FAMILLE']))
     sums = data.groupby('FAMILLE').sum()
-    line_to_print = 'La famille préférée de ce client est "' + sums["PRIX_NET"].idxmax()+\
-                    '" avec ' + round(sums["PRIX_NET"].max(), 2).__str__() + "€ dépensés."
+    line_to_print = '\n\nFamille préférée  : "' + sums["PRIX_NET"].idxmax()+\
+                    '" \nSomme dépensées :  ' + round(sums["PRIX_NET"].max(), 2).__str__()
     print(line_to_print)
+    return line_to_print
 
 def printFamilleMaxBought(data):
     """Print the famille with the max euros spent """
@@ -293,7 +298,6 @@ def printData(data, clientId):
     """Display values and plot about the dataset"""
 
     figs = []  # our array of generated figs
-    printFamilleMaxSpend(data)
     # Pie
     figs.append(pieTicketByFamille(data))
     figs.append(piePriceByFamille(data))
@@ -305,12 +309,12 @@ def printData(data, clientId):
 
     numbersOfItems(data)
     meanAndStdNumbersOfItemByClients(data)
-    meanAndNumbersOfItemsByTicket(data)
 
     mostPopularInUnivers(data)
     mostPopularInFamille(data)
 
     eventText = getEventRelatedToPricePayedByMonth(data)
+    eventText2 = meanAndNumbersOfItemsByTicket(data) + printFamilleMaxSpend(data)
 
     # PDF
     if PRINT_PDF is True:
@@ -318,6 +322,7 @@ def printData(data, clientId):
 
       # save event
       pdf.saveFigInPdf(pdf.textToFig(eventText))
+      pdf.saveFigInPdf(pdf.textToFig(eventText2))
 
       # save our generated figs hists/pies/charts
       print('Save fig into pdf')
