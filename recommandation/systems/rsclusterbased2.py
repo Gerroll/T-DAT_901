@@ -4,6 +4,8 @@ import json
 from datetime import datetime
 import hdbscan
 from pathlib import Path
+from inflect import engine
+ie = engine()
 
 """
     Paths
@@ -136,22 +138,25 @@ class RSClusterBased2:
         filtered = self.__raw_df[self.__raw_df["CLI_ID"] == user_id]
         return set(filtered["LIBELLE"].unique())
 
-    def __compute_explanation(self, data, n=0):
-        first = data["recommendations"][n]["LIBELLE"]
-        user_id = data["current_customer"]["ID"]
+    def __proportion_cluster_buy_it(self, df, df_size, libelle):
+        tot_libelle = df[df["LIBELLE"] == libelle]["CLI_ID"].unique()
+        return round(len(tot_libelle) * 100 / df_size, 3)
+
+    def __compute_explanation(self, data):
         current_proportion = self.__proportion_to_string(data["current_customer"]["proportions"])
         cluster_proportion = self.__proportion_to_string(data["cluster_customer"]["proportions"])
+        user_id = data["current_customer"]["ID"]
         cluster_size = len(data["cluster_customer"]["IDs"])
-        number_of_user = 0
-        for other_id in data["cluster_customer"]["IDs"]:
-            if first in self.__get_purchases_unique_from_customer_id(other_id):
-                number_of_user = number_of_user + 1
-        prop = round(number_of_user * 100.0 / cluster_size, 2)
-
-        return f"{first} is the best recommendation for the customer {user_id}, because this is the number {n+1} of " \
-               f"products selling in this cluster, {prop}% of them buy it. " \
-               f"Furthermore the user and his cluster have the same type of consumption: *User " \
-               f"consumption type: {current_proportion} ; *Cluster consumption type: {cluster_proportion} ."
+        df_raw_cluster = self.__raw_df[self.__raw_df["CLI_ID"].isin(data["cluster_customer"]["IDs"])]
+        for i in range(len(data["recommendations"])):
+            rank = ie.number_to_words(ie.ordinal(i+1))
+            libelle = data["recommendations"][i]["LIBELLE"]
+            prop = self.__proportion_cluster_buy_it(df_raw_cluster, cluster_size, libelle)
+            explanation = f"{libelle} is the {rank} best recommendation for the customer {user_id}, because {prop}%" \
+                          f" of customers of the same cluster bought it. Consumption characteristics user/cluster:" \
+                          f" *User consumption type: {current_proportion} ; *Cluster consumption " \
+                          f"type: {cluster_proportion} ."
+            data["recommendations"][i]["explanation"] = explanation
 
     def get_recommendation(self, user_id):
         """
@@ -187,11 +192,8 @@ class RSClusterBased2:
             },
             "recommendations": self.__count_df_to_json(other_purchases_without_current),
         }
-
-        explanation = self.__compute_explanation(data)
-        data["explanation"] = explanation
-
-        return data
+        self.__compute_explanation(data)
+        return data["recommendations"]
 
     @staticmethod
     def __proportion_to_string(prop):
@@ -208,5 +210,6 @@ class RSClusterBased2:
 
 if __name__ == "__main__":
     rs: RSClusterBased2 = RSClusterBased2()
+
     prediction = rs.get_recommendation(996899213)
     print(json.dumps(prediction, indent=2))

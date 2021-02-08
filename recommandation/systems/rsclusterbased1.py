@@ -2,6 +2,15 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from enum import Enum
 from pathlib import Path
+from datetime import datetime
+from json import dumps
+from inflect import engine
+ie = engine()
+
+"""
+    Pandas option
+"""
+pd.set_option("display.max_columns", None)
 
 """
     Paths
@@ -99,14 +108,13 @@ class RSClusterBased1:
 
     def get_five_first_line_libelle_of_specific_category(self, libelleScoreDFWithCategories, category: Category,
                                                          nameCategory: str):
-        return libelleScoreDFWithCategories.loc[libelleScoreDFWithCategories[category.name] == nameCategory][:5]
+        return libelleScoreDFWithCategories.loc[libelleScoreDFWithCategories[category.name] == nameCategory]
 
-    def get_recommendation_strategie_1(self, metadata, client_id, famille_prefered):
-        prefered_famille_of_client = famille_prefered
+    def get_recommendation_strategy(self, metadata, client_id, famille_preferred):
+        preferred_famille_of_client = famille_preferred
         df_client_unbuyed_label_with_score = self.get_not_buy_label_df_with_score_df(metadata, client_id)
-        recomandation = self.get_five_first_line_libelle_of_specific_category(df_client_unbuyed_label_with_score,
-                                                                         Category.FAMILLE, prefered_famille_of_client)
-        return recomandation
+        return self.get_five_first_line_libelle_of_specific_category(df_client_unbuyed_label_with_score,
+                                                                         Category.FAMILLE, preferred_famille_of_client)
 
     #
     # RECOMMENDATION BY SCORE AND FAMILY PREFERENCE USING CLUSTERING BEFORE SCORING
@@ -181,6 +189,35 @@ class RSClusterBased1:
         self.__data.to_pickle(clusterbased1_clust_file)
         print("Predicted data successfully saved to <PROJECT_ROOT>/assets/processed/clusterbased1_clust.pkl")
 
+    def recommendation_to_json(self, df):
+        return [{"LIBELLE": row[5], "SCORE": row[6]} for row in df.itertuples()]
+
+    def compute_prop_by_family_and_user(self, user_id, family):
+        tot = self.__raw_df[self.__raw_df["CLI_ID"] == user_id]
+        tot_family = tot[tot["FAMILLE"] == family]
+        return round(len(tot_family) * 100 / len(tot), 2)
+
+    def compute_prop_by_cluster(self, df, l_df, libelle):
+        tot_libelle = df[df["LIBELLE"] == libelle]["CLI_ID"].unique()
+        return round(len(tot_libelle) * 100 / l_df, 3)
+
+    def complete_data(self, data):
+        user_id = data["user_id"]
+        cluster_ids = data["cluster_ids"]
+        preferred_family = data["preferred_family"]
+        prop_family = data["proportion_family"]
+        filtered = self.__raw_df[(self.__raw_df["FAMILLE"] == preferred_family) & (self.__raw_df["CLI_ID"].isin(cluster_ids))]
+        tot = len(filtered["CLI_ID"].unique())
+
+        for i in range(len(data["recommendations"])):
+            libelle = data["recommendations"][i]["LIBELLE"]
+            rank = ie.number_to_words(ie.ordinal(i+1))
+            prop_family_cluster = self.compute_prop_by_cluster(filtered, tot, libelle)
+            explanation = f"{libelle} is the {rank} best recommendation for the customer {user_id}, because the preferred" \
+                          f" family is {preferred_family} ({prop_family}% of its purchases). And, for this family," \
+                          f" {prop_family_cluster}% of his cluster bought it."
+            data["recommendations"][i]["explanation"] = explanation
+
     def get_recommendation(self, user_id):
         # retrieve the list client id from the cluster of the current user id
         cliIdList = self.get_cli_id_list_of_cli_cluster_group(self.__data, user_id)
@@ -189,15 +226,26 @@ class RSClusterBased1:
         clientClusterMetadata = self.__raw_df.loc[self.__raw_df['CLI_ID'].isin(cliIdList)].sort_values(
             by=['CLI_ID']).reset_index()
 
-        # getting prefered familly for my_client_id
+        # getting preferred family for my_client_id
         clientMostPopularFamilleDf = self.most_popular_famille(self.__raw_df.loc[self.__raw_df['CLI_ID'].isin([user_id])])
         clientMostPopularFamille = clientMostPopularFamilleDf["FAMILLE"].tolist()[0]
 
-        # getting recommandation item based on best score and prefered familly of my client
-        recommandation = self.get_recommendation_strategie_1(clientClusterMetadata, user_id, clientMostPopularFamille)
-        return recommandation
+        # getting recommendation item based on best score and preferred family of my client
+        recommendation = self.get_recommendation_strategy(clientClusterMetadata, user_id, clientMostPopularFamille)
+        prop_family = self.compute_prop_by_family_and_user(user_id, clientMostPopularFamille)
+        data = {
+            "user_id": user_id,
+            "preferred_family": clientMostPopularFamille,
+            "recommendations": self.recommendation_to_json(recommendation),
+            "proportion_family": prop_family,
+            "cluster_ids": cliIdList
+        }
+        self.complete_data(data)
+        return data["recommendations"]
 
 
 if __name__ == "__main__":
     clusterer = RSClusterBased1()
-    print(clusterer.get_recommendation(1490281))
+    print(dumps(clusterer.get_recommendation(996899213), indent=4))
+    #print(clusterer.get_recommendation(1490281))
+

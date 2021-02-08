@@ -4,6 +4,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from pathlib import Path
 from datetime import datetime
 from json import dumps
+from inflect import engine
+ie = engine()
 
 
 """
@@ -108,19 +110,22 @@ class RSUserBased:
             related_customers[str(customer_id)]["purchases"][item] = count
 
     def __compute_description(self, data):
-        first = data["recommendations"][0]["LIBELLE"]
         user_id = list(data["current_customer"].keys())[0]
-        number_of_user = 0
-        sim_average = 0
-        for key, val in data["related_customers"].items():
-            purchases = list(val["purchases"].keys())
-            if first in purchases:
-                number_of_user = number_of_user + 1
-                sim_average = sim_average + val["sim_value"]
-        sim_average = round(sim_average / number_of_user, 3)
 
-        return f"{first} is the best recommendation for the customer {user_id}, because {number_of_user} others," \
-            f" who have on average a similarity of {sim_average}, buy the same product."
+        for i in range(len(data["recommendations"])):
+            rank = ie.number_to_words(ie.ordinal(i+1))
+            libelle = data["recommendations"][i]["LIBELLE"]
+            number_of_user = 0
+            sim_average = 0
+            for key, val in data["related_customers"].items():
+                purchases = list(val["purchases"].keys())
+                if libelle in purchases:
+                    number_of_user = number_of_user + 1
+                    sim_average = sim_average + val["sim_value"]
+            sim_average = round(sim_average / number_of_user, 3)
+            explanation = f"{libelle} is the {rank} best recommendation for the customer {user_id}, because {number_of_user} " \
+                          f"others, who have on average a similarity of {sim_average} with him, buy the same product."
+            data["recommendations"][i]["explanation"] = explanation
 
     def get_recommendation(self, user_id):
         """
@@ -178,11 +183,8 @@ class RSUserBased:
             "related_customers": related_customers,
             "recommendations": [{"LIBELLE": x, "occurrence": y} for x, y in sorted(target.get_count().items(), key=lambda x: x[1], reverse=True)]
         }
-
-        description = self.__compute_description(data)
-        data["description"] = description
-
-        return data
+        self.__compute_description(data)
+        return data["recommendations"]
 
 
 if __name__ == "__main__":
