@@ -4,13 +4,11 @@ from datetime import datetime
 from pathlib import Path
 from sklearn.cluster import KMeans
 
-
 # Adjust pandas console display
 pd_width = 320
 pd.set_option('display.width', pd_width)
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
-
 
 """
     Paths
@@ -27,8 +25,8 @@ kado_file = data_dir.joinpath("KaDo.csv")
 
 
 class Processor:
-    def __init__(self):
-        self.__raw_df = pd.read_csv(kado_file)
+    def __init__(self, raw_data):
+        self.__raw_df = raw_data
         self.__data = None
         # At the end of first processing, data processed dataframe are saved into pickle file
         if segmentation2_proc_file.is_file():
@@ -80,8 +78,8 @@ class Processor:
 
 
 class Clusterer2:
-    def __init__(self):
-        proc = Processor()
+    def __init__(self, raw_data):
+        proc = Processor(raw_data)
         self.__raw_df = proc.get_raw_data()
         self.__data = proc.get_processed_data()
         self.__data_size = len(self.__data)
@@ -140,11 +138,12 @@ class Clusterer2:
     def get_description(self, user_id):
         cluster_label = self.__data[self.__data["CLI_ID"] == user_id]["cluster"].iloc[0]
         cluster = self.__data[self.__data["cluster"] == cluster_label]
+        return_str = ''
         del cluster["CLI_ID"]
         del cluster["cluster"]
         p = round(len(cluster) * 100.0 / self.__data_size, 2)
         if cluster_label == 2:
-            print(f"Ce client appartient au {p} % de ceux qui achètent en proportion similaire tout au long de l'année.")
+            return_str += f"Ce client appartient au {p} % de ceux qui achètent en proportion similaire tout au long de l'année."
         else:
             months = {
                 "JAN": "janvier",
@@ -161,13 +160,5 @@ class Clusterer2:
                 "DEC": "decembre"
             }
             m = cluster.mean().idxmax()
-            print(f"Ce client appartient au {p} % de ceux qui font majoritairement leurs achats au mois de {months[m]}")
-
-
-if __name__ == "__main__":
-    ids = [1490281, 13290776, 20163348, 20200041, 20561854, 20727324, 20791601, 21046542, 21239163,
-     21351166, 21497331, 21504227, 21514622, 69813934, 71891681, 85057203]
-
-    clust = Clusterer2()
-    for i in ids:
-        clust.get_description(i)
+            return_str += f"Ce client appartient au {p} % de ceux qui font majoritairement leurs achats au mois de {months[m]}"
+        return return_str

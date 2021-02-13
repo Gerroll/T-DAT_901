@@ -30,8 +30,8 @@ print(kado_file)
 
 
 class Processor:
-    def __init__(self):
-        self.__raw_df = pd.read_csv(kado_file)
+    def __init__(self,raw_data):
+        self.__raw_df = raw_data
         self.__data = None
         # At the end of first processing, data processed dataframe are saved into pickle file
         if segmentation_proc_file.is_file():
@@ -79,8 +79,8 @@ class Processor:
 
 
 class Clusterer:
-    def __init__(self):
-        proc = Processor()
+    def __init__(self,raw_data):
+        proc = Processor(raw_data)
         self.__raw_df = proc.get_raw_data()
         self.__data = proc.get_processed_data()
         self.__data_size = len(self.__data)
@@ -185,17 +185,17 @@ class Clusterer:
         minn = desc["min"]
         maxx = desc["max"]
         moy = desc["mean"]
-
+        str_return = ''
         if feature == "NUM_BUY":
-            print("NOMBRE D'ACHAT:")
-            print(f"Ce client appartient au {percent} % de ceux qui achètent entre {minn} et {maxx}, avec une moyenne de {moy} achats.")
+            str_return += "NOMBRE D'ACHAT:\n"
+            str_return += f"Ce client appartient au {percent} % de ceux qui achètent entre {minn} et {maxx}, avec une moyenne de {moy} achats."
         elif feature == "SUM_PRICE":
-            print("TOTAL DEPENSE:")
-            print(f"Ce client appartient au {percent} % de ceux qui achètent des produits qui coûtent entre {minn} et {maxx} euros, avec un prix moyen d'un produit acheté de {moy} euros.")
+            str_return += "TOTAL DEPENSE:"
+            str_return += f"Ce client appartient au {percent} % de ceux qui achètent des produits qui coûtent entre {minn} et {maxx} euros, avec un prix moyen d'un produit acheté de {moy} euros."
         elif feature == "SIZE_BASKET":
-            print("TAILLE MOYEN DU PANIER")
-            print(f"Ce client appartient au {percent}% des clients qui font leur course avec des paniers de taille comprise entre {minn} et {maxx}, avec une taille moyenne de panier de {moy}.")
-
+            str_return += "TAILLE MOYEN DU PANIER"
+            str_return += f"Ce client appartient au {percent}% des clients qui font leur course avec des paniers de taille comprise entre {minn} et {maxx}, avec une taille moyenne de panier de {moy}."
+        return str_return
     def get_description(self, user_id):
         all_desc = []
         for ft in ["NUM_BUY", "SUM_PRICE", "SIZE_BASKET"]:
@@ -206,17 +206,7 @@ class Clusterer:
         for d in all_desc:
             tags.append(d["tag"])
         print("TAGS: " + ", ".join(tags))
+        str_return = ''
         for d in all_desc:
-            self.__display_description(d)
-
-
-if __name__ == "__main__":
-    clusterer = Clusterer()
-    ids = [1490281, 13290776, 20163348, 20200041, 20561854, 20727324, 20791601, 21046542, 21239163,
-     21351166, 21497331, 21504227, 21514622, 69813934, 71891681, 85057203]
-
-    for index in ids:
-        print("")
-        print("")
-        print(index)
-        clusterer.get_description(index)
+            str_return += self.__display_description(d)
+        return str_return
