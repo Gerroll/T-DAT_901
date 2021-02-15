@@ -9,12 +9,8 @@ PDF_PATH = './res/statistical_report.pdf'
 PRINT_PDF = True
 
 OS_WINDOWS = False
-if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
-  OS_WINDOWS = False
-elif sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
+if sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
   OS_WINDOWS = True
-else:
-  OS_WINDOWS = False
 
 LABEL_MOIS = ["Janv.", "Fevr.", "Mars", "Avril", "Mai", "Juin", "Juil.", "Aout", "Sept.", "Oct.",
                   "Nov.", "Dec."]
