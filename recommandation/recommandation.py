@@ -22,7 +22,7 @@ class Column(Enum):
 
 
 def initDataFrame(nrows=100000):
-    metadata = pd.read_csv('KaDo.csv', low_memory=False, nrows=nrows)
+    metadata = pd.read_csv('data/KaDo.csv', low_memory=False, nrows=nrows)
     return metadata
 
 # just for the sick of it
