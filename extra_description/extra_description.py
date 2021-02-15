@@ -187,13 +187,13 @@ class Clusterer:
         moy = desc["mean"]
         str_return = ''
         if feature == "NUM_BUY":
-            str_return += "NOMBRE D'ACHAT:\n"
+            str_return += "\nNOMBRE D'ACHAT:\n"
             str_return += f"Ce client appartient au {percent} % de ceux qui achètent entre {minn} et {maxx}, avec une moyenne de {moy} achats."
         elif feature == "SUM_PRICE":
-            str_return += "TOTAL DEPENSE:"
+            str_return += "\nTOTAL DEPENSE:\n"
             str_return += f"Ce client appartient au {percent} % de ceux qui achètent des produits qui coûtent entre {minn} et {maxx} euros, avec un prix moyen d'un produit acheté de {moy} euros."
         elif feature == "SIZE_BASKET":
-            str_return += "TAILLE MOYEN DU PANIER"
+            str_return += "\nTAILLE MOYEN DU PANIER\n"
             str_return += f"Ce client appartient au {percent}% des clients qui font leur course avec des paniers de taille comprise entre {minn} et {maxx}, avec une taille moyenne de panier de {moy}."
         return str_return
     def get_description(self, user_id):
