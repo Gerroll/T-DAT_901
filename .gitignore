@@ -122,24 +122,20 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-.dmypy.json
+.dmypy.json 
 dmypy.json
 
 # Pyre type checker
 .pyre/
 
-# main data
+# original dataset
 KaDo.csv
 /data
 
-# Visual Studio Code stuff
+/assets
+
+# VS Code stuff
 .vscode/
 
-# Pycharm stuff
+# Intellij stuff
 .idea
-
-# pickle file package
-processed-data/
-
-# T-DAT pdf
-T-DAT-901_project.pdf
