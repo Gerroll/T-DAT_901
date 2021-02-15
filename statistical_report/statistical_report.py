@@ -2,13 +2,22 @@ import math
 import matplotlib.pyplot as plt
 import pandas as pd
 from .pdf import PDF
+import sys
 
 
 PDF_PATH = './res/statistical_report.pdf'
 PRINT_PDF = True
 
-LABEL_MOIS = ["Janv.", "Fevr.", "Mars", "Avril", "Mai", "Juin", "Juil.", "Aout", "Sept.", "Octob.",
-                  "Novem.", "Decem."]
+OS_WINDOWS = False
+if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
+  OS_WINDOWS = False
+elif sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
+  OS_WINDOWS = True
+else:
+  OS_WINDOWS = False
+
+LABEL_MOIS = ["Janv.", "Fevr.", "Mars", "Avril", "Mai", "Juin", "Juil.", "Aout", "Sept.", "Oct.",
+                  "Nov.", "Dec."]
 EVENTS = ["Soldes d'hiver", "St-Valentin", "Soldes d'été", "Black Friday", "Cyber Monday", "Noël"]
 MOIS_TICKS = [0.,1.,2.,3., 4.,5.,6.,7., 8., 9., 10., 11.]
 MOIS_TICKS_HIST = [1.,2.,3., 4.,5.,6.,7., 8., 9., 10., 11.,12.]
@@ -178,16 +187,26 @@ def printFamilleMaxBought(data):
 
 def histNumberOfTicketByMonth(data,axarr):
     """histogram of x: month/ y : number of ticket"""
+    fig = plt.figure()
     month_union = data.groupby(['MOIS_VENTE'])
-    month_union['MOIS_VENTE'].hist(bins="auto",ax=axarr)
+    if axarr is None:
+      month_union['MOIS_VENTE'].hist(bins="auto")
+    else:
+      month_union['MOIS_VENTE'].hist(bins="auto",ax=axarr)
 
-    axarr.set_xticks(MOIS_TICKS_HIST)
-    axarr.set_xticklabels(LABEL_MOIS, fontsize=9)
-    axarr.title.set_text('Nombre de produits achetés par Mois')
+    if axarr is None:
+      plt.xticks(MOIS_TICKS_HIST, LABEL_MOIS)
+      plt.suptitle('Nombre de produits achetés par Mois')
+    else:
+      axarr.set_xticks(MOIS_TICKS_HIST)
+      axarr.set_xticklabels(LABEL_MOIS, fontsize=9)
+      axarr.title.set_text('Nombre de produits achetés par Mois')
 
     if PRINT_PDF is False:
         plt.show()
         plt.close()
+
+    return fig
 
 
 
@@ -195,12 +214,18 @@ def histPricePayedByMonth(data,axarr):
     """histogram of x: sum of price of ticket/ y : number of ticket"""
     fig = plt.figure()
     sums = data.groupby(['MOIS_VENTE'])
-    sums['PRIX_NET'].sum().plot(kind='bar',ax=axarr)
+    if axarr is None:
+      sums['PRIX_NET'].sum().plot(kind='bar')
+    else:
+      sums['PRIX_NET'].sum().plot(kind='bar',ax=axarr)
 
-    #plt.xticks(MOIS_TICKS, LABEL_MOIS)
-    axarr.set_xticks(MOIS_TICKS)
-    axarr.set_xticklabels(LABEL_MOIS, fontsize=10)
-    axarr.title.set_text('Somme dépensé par Mois')
+    if axarr is None:
+      plt.xticks(MOIS_TICKS, LABEL_MOIS)
+      plt.suptitle('Somme dépensé par Mois')
+    else:
+      axarr.set_xticks(MOIS_TICKS)
+      axarr.set_xticklabels(LABEL_MOIS, fontsize=10)
+      axarr.title.set_text('Somme dépensé par Mois')
 
     if PRINT_PDF is False:
         plt.show()
@@ -295,15 +320,23 @@ def getCliData(data, clientId):
 def printData(data, clientId):
     """Display values and plot about the dataset"""
 
+    print(OS_WINDOWS)
+
     figs = []  # our array of generated figs
     # Pie
     figs.append(pieTicketByFamille(data))
     figs.append(piePriceByFamille(data))
-    subplot , axarr = plt.subplots(2,1)
+    subplot = None
+    axarr = None
 
     # Histograms
-    histNumberOfTicketByMonth(data,axarr[1])
-    histPricePayedByMonth(data,axarr[0])
+    if OS_WINDOWS:
+      subplot , axarr = plt.subplots(2,1)
+      histNumberOfTicketByMonth(data,axarr[1])
+      histPricePayedByMonth(data,axarr[0])
+    else:
+      figs.append(histNumberOfTicketByMonth(data,axarr))
+      figs.append(histPricePayedByMonth(data,axarr))
 
     mostPopularInUnivers(data)
     mostPopularInFamille(data)
@@ -321,10 +354,11 @@ def printData(data, clientId):
 
       # save our generated figs hists/pies/charts
       print('Save fig into pdf')
-      pdf.saveFigInPdf(subplot)
+      if OS_WINDOWS:
+        pdf.saveFigInPdf(subplot)
+
       for fig in figs:
         pdf.saveFigInPdf(fig)
-
 
       pdf.closePdf()
 
