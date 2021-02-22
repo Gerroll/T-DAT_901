@@ -418,17 +418,17 @@ class Clusterer:
         plt.xticks([])
         plt.yticks([])
 
-        plt.text(0, 0.95, f"Taille: {clust_size} ({clust_prop}% de la clientelle)", size=10)
-        plt.text(0, 0.9, f"Dépense moyenne: {clust_expense}", size=10)
-        plt.text(0, 0.85, f"Panier moyen: {clust_basket}", size=10)
+        plt.text(0.04, 0.95, f"Taille: {clust_size} ({clust_prop}% de la clientelle)", size=10)
+        plt.text(0.04, 0.9, f"Dépense moyenne: {clust_expense}", size=10)
+        plt.text(0.04, 0.85, f"Panier moyen: {clust_basket}", size=10)
 
-        plt.text(0, 0.7, self.__remarquable_general(remarquables[0], "générales"), size=10)
-        plt.text(0, 0.4, self.__remarquable_general(remarquables[1], "familles"), size=10)
-        plt.text(0, 0, self.__remarquable_general(remarquables[2], "mois"), size=10)
+        plt.text(0.04, 0.7, self.__remarquable_general(remarquables[0], "générales"), size=10)
+        plt.text(0.04, 0.4, self.__remarquable_general(remarquables[1], "familles"), size=10)
+        plt.text(0.04, 0, self.__remarquable_general(remarquables[2], "mois"), size=10)
 
-        for i in range(1, 3):
-            labels = categories_label[i - 1]
-            data_list = data[i]
+        for i in range(2):
+            labels = categories_label[i]
+            data_list = data[i + 1]
 
             N = len(labels)
 
@@ -437,7 +437,7 @@ class Clusterer:
             angles += angles[:1]
 
             # Initialise the spider plot
-            ax = plt.subplot(2, 2, 2 + (i-1) * 2, polar=True)
+            ax = plt.subplot(2, 2, 2 + i * 2, polar=True)
 
             # If you want the first axis to be on top:
             ax.set_theta_offset(pi / 2)
@@ -449,7 +449,13 @@ class Clusterer:
             # Draw ylabels
             ax.set_rlabel_position(0)
             plt.yticks([10, 20, 30, 40, 50, 60, 70, 80, 90], ["10", "20", "30", "40", "50", "60", "70", "80", "90"], color="grey", size=7)
-            plt.ylim(0, max(data_list[1]))
+
+            # compute maximum
+            pot_max = max(data_list[3])
+            i_pot_max = data_list[3].index(pot_max)
+            other_max = data_list[1][i_pot_max]
+            mmax = (pot_max + other_max) / 2
+            plt.ylim(0, mmax)
 
             # ------- PART 2: Add plots
 
@@ -478,11 +484,9 @@ class Clusterer:
 
             # Add legend
             plt.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
-
         mng = plt.get_current_fig_manager()
         mng.resize(*mng.window.maxsize())
         plt.show()
-
 
     def __compute_remarquable(self, cluster_label):
         remarquables = [[], [], []]
@@ -542,7 +546,11 @@ class Clusterer:
         list_label = list(self.__data[self.__data["CLI_ID"] == client_id]["cluster"])
         if len(list_label) == 0:
             print("Client's ID doesn't exist")
+            return
         cluster_label = list_label[0]
+        if cluster_label == -1:
+            print("Client's ID can't find a pertinent segmentation")
+            return
 
         self.radar(cluster_label)
 
