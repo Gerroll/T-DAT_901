@@ -16,6 +16,8 @@ LABEL_MOIS = ["Janv.", "Fevr.", "Mars", "Avril", "Mai", "Juin", "Juil.", "Aout",
                   "Nov.", "Dec."]
 EVENTS = ["Soldes d'hiver", "St-Valentin", "Soldes d'été", "Black Friday", "Cyber Monday", "Noël"]
 MOIS_TICKS = [0.,1.,2.,3., 4.,5.,6.,7., 8., 9., 10., 11.]
+MOIS_TICKS_BAR = [0,1,2,3, 4,5,6,7, 8, 9, 10, 11]
+
 MOIS_TICKS_HIST = [1.,2.,3., 4.,5.,6.,7., 8., 9., 10., 11.,12.]
 
 def numbersOfItems(data):
@@ -212,13 +214,21 @@ def histPricePayedByMonth(data,axarr):
     sums = data.groupby(['MOIS_VENTE'])
     if axarr is None:
         fig = plt.figure()
-        sums['PRIX_NET'].sum().plot(kind='bar')
+        result = sums['PRIX_NET'].sum()
+        s1 = pd.Series([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+        for index, value in result.items():
+            s1[index] = value
+        s1.bar()
         plt.xticks(MOIS_TICKS, LABEL_MOIS)
         plt.suptitle('Somme dépensé par Mois')
         return fig
     else:
-      sums['PRIX_NET'].sum().plot(kind='bar',ax=axarr)
-      axarr.set_xticks(MOIS_TICKS)
+      result = sums['PRIX_NET'].sum()
+      s1 = pd.Series([0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
+      for index, value in result.items():
+          s1[index] = value
+      s1.plot(kind='bar',ax=axarr)
+      axarr.set_xticks(MOIS_TICKS_HIST)
       axarr.set_xticklabels(LABEL_MOIS, fontsize=10)
       axarr.title.set_text('Somme dépensé par Mois')
       if PRINT_PDF is False:
@@ -339,9 +349,9 @@ def printData(data, clientId):
     # Histograms
     if OS_WINDOWS:
       subplot , axarr = plt.subplots(2,1)
-      histPricePayedByMonth(datas,axarr[0])
 
-      histNumberOfTicketByMonth(datas,axarr[1])
+      histNumberOfTicketByMonth(datas,axarr[0])
+      histPricePayedByMonth(datas,axarr[1])
     else:
       figs.append(histNumberOfTicketByMonth(datas,axarr))
       figs.append(histPricePayedByMonth(datas,axarr))
