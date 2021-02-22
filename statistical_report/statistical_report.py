@@ -97,6 +97,8 @@ def meanAndNumbersOfItemsByTicket(data):
     print("Quantité d'objets par paniers:", item_description.min(), '-', item_description.max())
     print("Nombre moyen d'objet par paniers :", item_description.mean())
     return string_to_return
+
+
 def histPriceByTicket(data,axarr):
     """Histogram of x: Price of ticket / y: Number of Ticket"""
     fig = plt.figure()
@@ -139,7 +141,7 @@ def pieTicketByFamille(data):
     """piechart of quantity of sales in every Famille """
     fig = plt.figure()
     sums = data.value_counts('FAMILLE')
-    plt.pie(sums, labels=sums.index, autopct='%1.1f%%')
+    plt.pie(sums, labels=sums.index, autopct='%1.1f%%', normalize=True)
     plt.axis = 'equal'
     plt.suptitle('Nombre de produits achetés par famille')
 
@@ -155,7 +157,7 @@ def piePriceByFamille(data):
     fig = plt.figure()
     sums = data.groupby('FAMILLE').sum()
     print(sums['PRIX_NET'])
-    plt.pie(sums['PRIX_NET'], labels=sums.index, autopct='%1.1f%%',startangle=90)
+    plt.pie(sums['PRIX_NET'], labels=sums.index, autopct='%1.1f%%',startangle=90, normalize=True)
     plt.axis = 'equal'
     plt.suptitle('Somme dépensé par famille')
     if PRINT_PDF is False:
@@ -205,6 +207,7 @@ def histNumberOfTicketByMonth(data,axarr):
 
 
 def histPricePayedByMonth(data,axarr):
+    print(data)
     """histogram of x: sum of price of ticket/ y : number of ticket"""
     sums = data.groupby(['MOIS_VENTE'])
     if axarr is None:
@@ -222,34 +225,49 @@ def histPricePayedByMonth(data,axarr):
           plt.show()
           plt.close()
 
-def getEventRelatedToPricePayedByMonth(data):
 
+def getEventRelatedToPricePayedByMonth(data):
+  """Retrieve the events related to the best months of price payed by client"""
   sums = data.groupby(['MOIS_VENTE']).sum().sort_values(by=['PRIX_NET'], ascending=False)
-  twoBestMonths = sums.take([0, 1])
+
+  process_event = False
+  twoBestMonths = sums.take([0])
+  if len(sums) > 1:
+    twoBestMonths = sums.take([0, 1])
 
   firstMonth = int(pd.DataFrame(twoBestMonths)['TICKET_ID'].keys()[0])
-  secondMonth = int(pd.DataFrame(twoBestMonths)['TICKET_ID'].keys()[1])
+  secondMonth = None
+  if len(sums) > 1:
+    secondMonth = int(pd.DataFrame(twoBestMonths)['TICKET_ID'].keys()[1])
 
-  text = f"L'utilisateur dépense beaucoup aux mois\nde {LABEL_MOIS[firstMonth-1]} et {LABEL_MOIS[secondMonth-1]} pour :\n"
-  if isSoldeHiver(firstMonth) or isSoldeHiver(secondMonth): # solde hiver
-    text = text + f"- {EVENTS[0]}\n"
-  if firstMonth == 2 or secondMonth == 2: # st valentin
-    text = text + f"- {EVENTS[1]}\n"
-  if isSoldeEte(firstMonth) or isSoldeEte(secondMonth): # solde été
-    text = text + f"- {EVENTS[2]}\n"
-  if firstMonth == 11 or secondMonth == 11: # black friday - Cyber Monday
-    text = text + f"- {EVENTS[3]}\n"
-    text = text + f"- {EVENTS[4]}\n"
-  if firstMonth == 12 or secondMonth == 12: # noel
-    text = text + f"- {EVENTS[5]}\n"
+  if isSoldeHiver(firstMonth) or isSoldeHiver(secondMonth) or firstMonth == 2 or secondMonth == 2 or isSoldeEte(firstMonth) or isSoldeEte(secondMonth) or firstMonth == 11 or secondMonth == 11 or firstMonth == 12 or secondMonth == 12:
+    process_event = True
+  text = f"L'utilisateur dépense beaucoup aux mois\nde {LABEL_MOIS[firstMonth-1]}" 
+  if len(sums) > 1:
+    text += f" et {LABEL_MOIS[secondMonth-1]}"
+  
+  if process_event:
+    text += " pour :\n"
+    if isSoldeHiver(firstMonth) or isSoldeHiver(secondMonth): # solde hiver
+      text = text + f"- {EVENTS[0]}\n"
+    if firstMonth == 2 or secondMonth == 2: # st valentin
+      text = text + f"- {EVENTS[1]}\n"
+    if isSoldeEte(firstMonth) or isSoldeEte(secondMonth): # solde été
+      text = text + f"- {EVENTS[2]}\n"
+    if firstMonth == 11 or secondMonth == 11: # black friday - Cyber Monday
+      text = text + f"- {EVENTS[3]}\n"
+      text = text + f"- {EVENTS[4]}\n"
+    if firstMonth == 12 or secondMonth == 12: # noel
+      text = text + f"- {EVENTS[5]}\n"
 
   print(text)
   return text
 
 def isSoldeHiver(month):
-    return month == 1 or month == 2
+    return month is not None and (month == 1 or month == 2)
+
 def isSoldeEte(month):
-    return month == 6 or month == 7
+    return month is not None and (month == 6 or month == 7)
 
 def compareHistPricePayedByMonth(data_user, data_full):
     """Compare Price spend by month between a big dataset (full, cluster) with the data of a user"""
@@ -295,13 +313,13 @@ def compareHistPricePayedByFamille(data_user, data_full):
 
 def bestCliForTest(data):
     """return a subset of the data with the cli_id that has the most items buyed in the subset  """
-    return data[data['CLI_ID'] == data['CLI_ID'].value_counts().idxmax()]
+    return data[data['CLI_ID'] == int(data['CLI_ID'].value_counts().idxmax())]
 
 
 def getCliData(data, clientId):
     """return a subset of the data with the cli_id specified  """
     if clientId:
-        return data[data['CLI_ID'] == clientId]
+        return data[data['CLI_ID'] == int(clientId)]
     else:
         return data
 
@@ -309,30 +327,32 @@ def getCliData(data, clientId):
 def printData(data, clientId):
     """Display values and plot about the dataset"""
 
-    print(OS_WINDOWS)
+    datas = getCliData(data, clientId)
 
     figs = []  # our array of generated figs
     # Pie
-    figs.append(pieTicketByFamille(data))
-    figs.append(piePriceByFamille(data))
+    figs.append(pieTicketByFamille(datas))
+    figs.append(piePriceByFamille(datas))
     subplot = None
     axarr = None
 
     # Histograms
     if OS_WINDOWS:
       subplot , axarr = plt.subplots(2,1)
-      histPricePayedByMonth(data,axarr[0])
+      histPricePayedByMonth(datas,axarr[0])
 
-      histNumberOfTicketByMonth(data,axarr[1])
+      histNumberOfTicketByMonth(datas,axarr[1])
     else:
-      figs.append(histNumberOfTicketByMonth(data,axarr))
-      figs.append(histPricePayedByMonth(data,axarr))
+      figs.append(histNumberOfTicketByMonth(datas,axarr))
+      figs.append(histPricePayedByMonth(datas,axarr))
 
-    mostPopularInUnivers(data)
-    mostPopularInFamille(data)
+    print()
+    mostPopularInUnivers(datas)
+    print()
+    mostPopularInFamille(datas)
 
-    eventText = getEventRelatedToPricePayedByMonth(data)
-    eventText2 = meanAndNumbersOfItemsByTicket(data) + printFamilleMaxSpend(data)
+    eventText = getEventRelatedToPricePayedByMonth(datas)
+    eventText2 = meanAndNumbersOfItemsByTicket(datas) + printFamilleMaxSpend(datas)
 
     # PDF
     if PRINT_PDF is True:

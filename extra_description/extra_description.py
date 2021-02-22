@@ -24,9 +24,6 @@ segmentation_proc_cluster_file = proc_data_dir.joinpath("segmentation_proc_clust
 # path to data source
 data_dir = project_dir.joinpath("data")
 kado_file = data_dir.joinpath("KaDo.csv")
-print(project_dir)
-print(data_dir)
-print(kado_file)
 
 
 class Processor:

@@ -4,9 +4,9 @@ import pandas as pd
 
 from extra_description import Clusterer, Clusterer2
 from recommandation import rsmerger
-from statistical_report import printData
+from statistical_report import printData, getCliData
 
-N_ROWS = 10000
+N_ROWS = None
 DEMO_IDS = [1490281, 13290776, 20163348, 20200041, 20561854, 20727324, 20791601, 21046542, 21239163,
             21351166, 21497331, 21504227, 21514622, 69813934, 71891681, 85057203]
 
@@ -38,8 +38,8 @@ def initDataFrame():
     #printData(getCliData(metadata, clientId))
 
     # print('Performance test print Data  : ', time.time() - debut)
-"""Initialisation of both clusters"""
 def initClusters(raw_data):
+    """Initialisation of both clusters"""
     return Clusterer(raw_data), Clusterer2(raw_data)
 
 if __name__ == "__main__":
@@ -57,7 +57,8 @@ if __name__ == "__main__":
         clientId = 1490281
     print(f"Your id : '{clientId}'")
     print("Please Wait ...")
+    print()
 
-    merger.get_recommendation(clientId, "ALL")
+    merger.get_recommendation(int(clientId), "ALL")
     printData(metadata, clientId)
 
