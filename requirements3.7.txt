@@ -20,3 +20,4 @@ wrapt==1.12.1
 matplotlib==3.3.3
 Cython==0.29.21
 hdbscan==0.8.26
+inflect==5.0.2
