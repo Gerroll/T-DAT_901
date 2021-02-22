@@ -4,19 +4,19 @@ from sklearn.metrics.pairwise import cosine_similarity
 from pathlib import Path
 from datetime import datetime
 from json import dumps
+from inflect import engine
+ie = engine()
 
 
 """
     Paths
 """
 # path to project directory
-project_dir = Path(__file__).parent.parent
+project_dir = Path(__file__).parent.parent.parent
 # path to processed data
-proc_data_dir = project_dir.joinpath("processed-data")
-user_proc_file = proc_data_dir.joinpath("user_proc_2.pkl")
+userbased_proc_file = project_dir.joinpath("assets").joinpath("processed").joinpath("userbased_proc.pkl")
 # path to data source
-data_dir = project_dir.joinpath("data")
-kado_file = data_dir.joinpath("KaDo.csv")
+kado_file = project_dir.joinpath("data").joinpath("KaDo.csv")
 
 
 class Processor:
@@ -24,8 +24,8 @@ class Processor:
         self.__raw_df = pd.read_csv(kado_file)
         self.__data = None
         # At the end of first processing, data processed dataframe are saved into pickle file
-        if user_proc_file.is_file():
-            self.__load_file()
+        if userbased_proc_file.is_file():
+            self.__data = pd.read_pickle(userbased_proc_file)
         else:
             self.__process()
 
@@ -34,9 +34,6 @@ class Processor:
 
     def get_processed_data(self):
         return self.__data
-
-    def __load_file(self):
-        self.__data = pd.read_pickle(user_proc_file)
 
     def __process(self):
         # Retrieve all unique client ID
@@ -62,8 +59,8 @@ class Processor:
         print(f"End preprocess at {datetime.now().time()}")
 
         # Save dataframe into pickle file
-        self.__data.to_pickle(user_proc_file)
-        print("File successfully saved to <PROJECT_ROOT>/processed-data/user_proc_2.pkl")
+        self.__data.to_pickle(userbased_proc_file)
+        print("Processed data successfully saved to <PROJECT_ROOT>/assets/processed/userbased_proc.pkl")
 
 
 class Counter:
@@ -113,19 +110,22 @@ class RSUserBased:
             related_customers[str(customer_id)]["purchases"][item] = count
 
     def __compute_description(self, data):
-        first = data["recommendations"][0]["LIBELLE"]
         user_id = list(data["current_customer"].keys())[0]
-        number_of_user = 0
-        sim_average = 0
-        for key, val in data["related_customers"].items():
-            purchases = list(val["purchases"].keys())
-            if first in purchases:
-                number_of_user = number_of_user + 1
-                sim_average = sim_average + val["sim_value"]
-        sim_average = round(sim_average / number_of_user, 3)
 
-        return f"{first} is the best recommendation for the customer {user_id}, because {number_of_user} others," \
-            f" who have on average a similarity of {sim_average}, buy the same product."
+        for i in range(len(data["recommendations"])):
+            rank = ie.number_to_words(ie.ordinal(i+1))
+            libelle = data["recommendations"][i]["LIBELLE"]
+            number_of_user = 0
+            sim_average = 0
+            for key, val in data["related_customers"].items():
+                purchases = list(val["purchases"].keys())
+                if libelle in purchases:
+                    number_of_user = number_of_user + 1
+                    sim_average = sim_average + val["sim_value"]
+            sim_average = round(sim_average / number_of_user, 3)
+            explanation = f"{libelle} is the {rank} best recommendation for the customer {user_id}, because {number_of_user} " \
+                          f"others, who have on average a similarity of {sim_average} with him, buy the same product."
+            data["recommendations"][i]["explanation"] = explanation
 
     def get_recommendation(self, user_id):
         """
@@ -183,11 +183,8 @@ class RSUserBased:
             "related_customers": related_customers,
             "recommendations": [{"LIBELLE": x, "occurrence": y} for x, y in sorted(target.get_count().items(), key=lambda x: x[1], reverse=True)]
         }
-
-        description = self.__compute_description(data)
-        data["description"] = description
-
-        return data
+        self.__compute_description(data)
+        return data["recommendations"]
 
 
 if __name__ == "__main__":

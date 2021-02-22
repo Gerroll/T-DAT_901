@@ -4,20 +4,20 @@ import json
 from datetime import datetime
 import hdbscan
 from pathlib import Path
-import sys
+from inflect import engine
+ie = engine()
 
 """
     Paths
 """
 # path to project directory
-project_dir = Path(__file__).parent.parent
+project_dir = Path(__file__).parent.parent.parent
 # path to processed data
-proc_data_dir = project_dir.joinpath("processed-data")
-user_proc_cluster_file = proc_data_dir.joinpath("user_proc_cluster.pkl")
-user_proc_file = proc_data_dir.joinpath("user_proc.pkl")
+processed_dir = project_dir.joinpath("assets").joinpath("processed")
+clusterbased2_proc_file = processed_dir.joinpath('clusterbased2_proc.pkl')
+clusterbased2_clust_file = processed_dir.joinpath('clusterbased2_clust.pkl')
 # path to data source
-data_dir = project_dir.joinpath("data")
-kado_file = data_dir.joinpath("KaDo.csv")
+kado_file = project_dir.joinpath("data").joinpath("KaDo.csv")
 
 
 class Processor:
@@ -25,8 +25,8 @@ class Processor:
         self.__raw_df = pd.read_csv(kado_file)
         self.__data = None
         # At the end of first processing, data processed dataframe are saved into pickle file
-        if user_proc_file.is_file():
-            self.__load_file()
+        if clusterbased2_proc_file.is_file():
+            self.__data = pd.read_pickle(clusterbased2_proc_file)
         else:
             self.__process()
 
@@ -35,9 +35,6 @@ class Processor:
 
     def get_processed_data(self):
         return self.__data
-
-    def __load_file(self):
-        self.__data = pd.read_pickle(user_proc_file)
 
     def __process(self):
         # Retrieve all unique client ID
@@ -66,11 +63,11 @@ class Processor:
         print(f"End preprocess at {datetime.now().time()}")
 
         # Save to pickle
-        self.__data.to_pickle(user_proc_file)
-        print("File successfully saved to <PROJECT_ROOT>/processed-data/user_proc.pkl")
+        self.__data.to_pickle(clusterbased2_proc_file)
+        print("File successfully saved to <PROJECT_ROOT>/assets/processed/clusterbased2_proc.pkl")
 
 
-class RSClusterBased:
+class RSClusterBased2:
     def __init__(self, remake_prediction=False, min_cluster_size=100):
         self.__raw_df = pd.read_csv(kado_file)
         self.__data = None
@@ -78,11 +75,11 @@ class RSClusterBased:
         if remake_prediction:
             self.__remake_prediction(min_cluster_size)
 
-        if not user_proc_cluster_file.is_file():
+        if not clusterbased2_clust_file.is_file():
             print("Predicted data doesn't exist. Re-compute the prediction...")
             self.__remake_prediction(min_cluster_size)
 
-        self.__data = pd.read_pickle(user_proc_cluster_file)
+        self.__data = pd.read_pickle(clusterbased2_clust_file)
 
     def get_raw_df(self):
         return self.__raw_df
@@ -104,8 +101,8 @@ class RSClusterBased:
         print(f"Number of labels: {clusterer.labels_.max()}")
         self.__data["prediction"] = clusterer.labels_
         if save:
-            self.__data.to_pickle(user_proc_cluster_file)
-            print("File successfully saved to <PROJECT_ROOT>/processed-data/user_proc_cluster.pkl")
+            self.__data.to_pickle(clusterbased2_clust_file)
+            print("Predicted data successfully saved to <PROJECT_ROOT>/assets/processed/clusterbased2_clust.pkl")
 
     def __get_customers_id_from_cluster_id(self, cluster_id):
         """
@@ -141,22 +138,25 @@ class RSClusterBased:
         filtered = self.__raw_df[self.__raw_df["CLI_ID"] == user_id]
         return set(filtered["LIBELLE"].unique())
 
-    def __compute_explanation(self, data, n=0):
-        first = data["recommendations"][n]["LIBELLE"]
-        user_id = data["current_customer"]["ID"]
+    def __proportion_cluster_buy_it(self, df, df_size, libelle):
+        tot_libelle = df[df["LIBELLE"] == libelle]["CLI_ID"].unique()
+        return round(len(tot_libelle) * 100 / df_size, 3)
+
+    def __compute_explanation(self, data):
         current_proportion = self.__proportion_to_string(data["current_customer"]["proportions"])
         cluster_proportion = self.__proportion_to_string(data["cluster_customer"]["proportions"])
+        user_id = data["current_customer"]["ID"]
         cluster_size = len(data["cluster_customer"]["IDs"])
-        number_of_user = 0
-        for other_id in data["cluster_customer"]["IDs"]:
-            if first in self.__get_purchases_unique_from_customer_id(other_id):
-                number_of_user = number_of_user + 1
-        prop = round(number_of_user * 100.0 / cluster_size, 2)
-
-        return f"{first} is the best recommendation for the customer {user_id}, because this is the number {n+1} of " \
-               f"products selling in this cluster, {prop}% of them buy it. " \
-               f"Furthermore the user and his cluster have the same type of consumption: *User " \
-               f"consumption type: {current_proportion} ; *Cluster consumption type: {cluster_proportion} ."
+        df_raw_cluster = self.__raw_df[self.__raw_df["CLI_ID"].isin(data["cluster_customer"]["IDs"])]
+        for i in range(len(data["recommendations"])):
+            rank = ie.number_to_words(ie.ordinal(i+1))
+            libelle = data["recommendations"][i]["LIBELLE"]
+            prop = self.__proportion_cluster_buy_it(df_raw_cluster, cluster_size, libelle)
+            explanation = f"{libelle} is the {rank} best recommendation for the customer {user_id}, because {prop}%" \
+                          f" of customers of the same cluster bought it. Consumption characteristics user/cluster:" \
+                          f" *User consumption type: {current_proportion} ; *Cluster consumption " \
+                          f"type: {cluster_proportion} ."
+            data["recommendations"][i]["explanation"] = explanation
 
     def get_recommendation(self, user_id):
         """
@@ -192,11 +192,8 @@ class RSClusterBased:
             },
             "recommendations": self.__count_df_to_json(other_purchases_without_current),
         }
-
-        explanation = self.__compute_explanation(data)
-        data["explanation"] = explanation
-
-        return data
+        self.__compute_explanation(data)
+        return data["recommendations"]
 
     @staticmethod
     def __proportion_to_string(prop):
@@ -212,6 +209,7 @@ class RSClusterBased:
 
 
 if __name__ == "__main__":
-    rs: RSClusterBased = RSClusterBased()
+    rs: RSClusterBased2 = RSClusterBased2()
+
     prediction = rs.get_recommendation(996899213)
     print(json.dumps(prediction, indent=2))
