@@ -3,6 +3,9 @@ from textwrap import dedent
 import pandas as pd
 
 from extra_description import Clusterer, Clusterer2
+from recommandation import rsmerger
+from statistical_report import printData
+
 N_ROWS = 10000
 DEMO_IDS = [1490281, 13290776, 20163348, 20200041, 20561854, 20727324, 20791601, 21046542, 21239163,
             21351166, 21497331, 21504227, 21514622, 69813934, 71891681, 85057203]
@@ -42,15 +45,8 @@ def initClusters(raw_data):
 if __name__ == "__main__":
     # load metadatas from dataframe
     metadata = initDataFrame()
+    merger = rsmerger.Merger()
 
-    clusterer, clusterer2 = initClusters(metadata)
-
-    ### Clusters Demo
-    for index in DEMO_IDS:
-        print('ID : ', index)
-        stringClusterer = clusterer.get_description(index)
-        stringClusterer2 = clusterer2.get_description(index)
-        print("\n\n")
     # ask for the client ID
     print(dedent("""
            This application will give you a recomandation and a statistical report base on your client ID.
@@ -62,16 +58,6 @@ if __name__ == "__main__":
     print(f"Your id : '{clientId}'")
     print("Please Wait ...")
 
-#    recomandation = getRecomandation(clientId, rowCsv=100000)
-#    print(recomandation)
+    merger.get_recommendation(clientId, "ALL")
+    printData(metadata, clientId)
 
-
-
-    # print stastical report
-    #printStatisticalReport(metadata, clientId)
-    #compareResult(getCliData(metadata,1490281), metadata)
-
-    # TODO 
-    # TODO statisticalReport = getStatisticalReport(clientId)
-    # TODO print(statisticalReport)
-    # TODO 
