@@ -10,6 +10,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import NearestNeighbors
 import hdbscan
+from math import pi
 
 # Adjust pandas console display
 pd_width = 320
@@ -188,6 +189,7 @@ class Clusterer:
         self.__raw_df = proc.get_raw_data()
         self.__data = proc.get_processed_data()
         self.__cli_size = len(self.__data['CLI_ID'].unique())
+        self.__cluster_analysis = None
 
         #
         # This part is use too cluster only mois and cluster family
@@ -330,29 +332,227 @@ class Clusterer:
             print(value)
 
     def to_csv(self):
+        if segmentation_result_file.is_file():
+            self.__cluster_analysis = pd.read_csv(segmentation_result_file)
+            return
         cluster_labels = sorted(list(self.__data['cluster'].unique()))
         print(f"cluster labels: {cluster_labels}")
         print(f"Proportion of clients who did not find a cluster: {len(self.__data[self.__data['cluster'] == -1])} / {len(self.__data)}")
         cluster_labels.remove(-1)
         rows = []
         familles_col = [f + " (%)" for f in familles]
-        mois_col = [m + " (%)" for m in mois]
-        columns = ['cluster', 'client_proportion (%)', 'mean_expense', 'mean_basket'] + familles_col + mois_col
+        mm = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
+             "novembre", "décembre"]
+        mois_col = [m + " (%)" for m in mm]
+        columns = ['cluster', 'proportion de la clientèle (%)', 'moyenne des dépenses', 'taille moyenne du panier'] + familles_col + mois_col
         for i in cluster_labels:
             print(i)
-            desc = clust.get_description(i)
+            desc = self.get_description(i)
             row = []
             row.extend([str(i), desc['client_proportion'], desc['mean_expense'], desc['mean_basket']])
             row.extend(desc['proportion_purchase_by_family'])
             row.extend(desc['proportion_purchase_by_month'])
             rows.append(row)
 
-        pd.DataFrame(
-            np.array(rows),
-            columns=columns
-        ).to_csv(segmentation_result_file)
+        self.__cluster_analysis = pd.DataFrame(np.array(rows), columns=columns)
+        self.__cluster_analysis.to_csv(segmentation_result_file)
+
+    def radar_chart_all_data(self, type_t):
+        analysis = []
+        for column in self.__cluster_analysis:
+            serie = self.__cluster_analysis[column].astype(float)
+            m = -1
+            if type_t == "mean":
+                m = serie.mean()
+            elif type_t == "min":
+                m = serie.min()
+            elif type_t == "max":
+                m = serie.max()
+            analysis.append(m)
+        return analysis
+
+    def radar_chart_one_data(self, cluster_label):
+        return list(self.__cluster_analysis.iloc[cluster_label])
+
+    def __remarquable_general(self, remarquables, type_t):
+        description = f"Caractéristiques remarquables {type_t}:\n"
+        up = []
+        down = []
+
+        for remarquable in remarquables:
+            value = remarquable["value"]
+            feat = remarquable["feature"]
+            if remarquable["ext"] == 1:
+                up.append((feat, value))
+            elif remarquable["ext"] == 0:
+                down.append((feat, value))
+        if len(up) != 0:
+            description += f" HAUTES:\n"
+            for cat in up:
+                description += f"     -{cat[0]}: {cat[1]}\n"
+            description += "\n"
+        if len(down) != 0:
+            description += f" BASSES:\n"
+            for cat in down:
+                description += f"     -{cat[0]}: {cat[1]}\n"
+        return description
+
+    def display_radar(self, data, remarquables, cluster_label):
+
+        # ------- PART 1: Create background
+
+        categories_label = [
+            ["hygiene", "soins du visage", "parfumage", "soins du corps", "maquillage", "capillaires", "solaires"],
+            ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
+             "novembre", "décembre"]
+        ]
+
+        clust_prop = data[0][3][2]
+        clust_size = len(self.__data[self.__data["cluster"] == cluster_label])
+        clust_expense = data[0][3][3]
+        clust_basket = data[0][3][4]
+
+        plt.figure().suptitle(f"Cluster {cluster_label}")
+
+        plt.subplot(1, 2, 1)
+        plt.xticks([])
+        plt.yticks([])
+
+        plt.text(0, 0.95, f"Taille: {clust_size} ({clust_prop}% de la clientelle)", size=10)
+        plt.text(0, 0.9, f"Dépense moyenne: {clust_expense}", size=10)
+        plt.text(0, 0.85, f"Panier moyen: {clust_basket}", size=10)
+
+        plt.text(0, 0.7, self.__remarquable_general(remarquables[0], "générales"), size=10)
+        plt.text(0, 0.4, self.__remarquable_general(remarquables[1], "familles"), size=10)
+        plt.text(0, 0, self.__remarquable_general(remarquables[2], "mois"), size=10)
+
+        for i in range(1, 3):
+            labels = categories_label[i - 1]
+            data_list = data[i]
+
+            N = len(labels)
+
+            # What will be the angle of each axis in the plot? (we divide the plot / number of variable)
+            angles = [n / float(N) * 2 * pi for n in range(N)]
+            angles += angles[:1]
+
+            # Initialise the spider plot
+            ax = plt.subplot(2, 2, 2 + (i-1) * 2, polar=True)
+
+            # If you want the first axis to be on top:
+            ax.set_theta_offset(pi / 2)
+            ax.set_theta_direction(-1)
+
+            # Draw one axe per variable + add labels labels yet
+            plt.xticks(angles[:-1], labels)
+
+            # Draw ylabels
+            ax.set_rlabel_position(0)
+            plt.yticks([10, 20, 30, 40, 50, 60, 70, 80, 90], ["10", "20", "30", "40", "50", "60", "70", "80", "90"], color="grey", size=7)
+            plt.ylim(0, max(data_list[1]))
+
+            # ------- PART 2: Add plots
+
+            # Plot each individual = each line of the data
+            # I don't do a loop, because plotting more than 3 groups makes the chart unreadable
+
+            # Min
+            values = data_list[0]
+            values += values[:1]
+            ax.plot(angles, values, linewidth=1, linestyle='solid', label="Min", color="#0000FF")
+
+            # Max
+            values = data_list[1]
+            values += values[:1]
+            ax.plot(angles, values, linewidth=1, linestyle='solid', label="Max", color="#FF0000")
+
+            # Moyenne
+            values = data_list[2]
+            values += values[:1]
+            ax.plot(angles, values, linewidth=1, linestyle='solid', label="Moyenne", color="#FF00FF")
+
+            # Cluster
+            values = data_list[3]
+            values += values[:1]
+            ax.fill(angles, values, label="Cluster " + str(cluster_label), color="#000000", alpha=0.4)
+
+            # Add legend
+            plt.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
+
+        mng = plt.get_current_fig_manager()
+        mng.resize(*mng.window.maxsize())
+        plt.show()
+
+
+    def __compute_remarquable(self, cluster_label):
+        remarquables = [[], [], []]
+        i = 0
+        for column in self.__cluster_analysis:
+            serie = sorted(list(self.__cluster_analysis[column]))
+            clust_value = self.__cluster_analysis[column].iloc[cluster_label]
+            rank = 15 - serie.index(clust_value)
+            if rank <= 3 or rank >= 13:
+                if i in [2, 3, 4]:
+                    remarquables[0].append(
+                        {
+                            "feature": column,
+                            "value": clust_value,
+                            "rank": rank,
+                            "ext": 1 if rank <= 3 else 0 if rank >= 13 else -1
+                        }
+                    )
+                if 5 <= i <= 11:
+                    remarquables[1].append(
+                        {
+                            "feature": column,
+                            "value": clust_value,
+                            "rank": rank,
+                            "ext": 1 if rank <= 3 else 0 if rank >= 13 else -1
+                        }
+                    )
+                if i >= 14:
+                    remarquables[2].append(
+                        {
+                            "feature": column,
+                            "value": clust_value,
+                            "rank": rank,
+                            "ext": 1 if rank <= 3 else 0 if rank >= 13 else -1
+                        }
+                    )
+            i = i + 1
+        return remarquables
+
+    def radar(self, cluster_label):
+        remarquables = self.__compute_remarquable(cluster_label)
+        min_data = self.radar_chart_all_data("min")
+        max_data = self.radar_chart_all_data("max")
+        mean_data = self.radar_chart_all_data("mean")
+        one_data = self.radar_chart_one_data(cluster_label)
+        data = [
+            [min_data[:5], max_data[:5], mean_data[:5], one_data[:5]],
+            [min_data[5:12], max_data[5:12], mean_data[5:12], one_data[5:12]],
+            [min_data[14:], max_data[14:], mean_data[14:], one_data[14:]]
+        ]
+
+        self.display_radar(data, remarquables, cluster_label)
+
+    def display_segmentation(self, client_id):
+        # the cluster of the client
+        self.to_csv()
+        list_label = list(self.__data[self.__data["CLI_ID"] == client_id]["cluster"])
+        if len(list_label) == 0:
+            print("Client's ID doesn't exist")
+        cluster_label = list_label[0]
+
+        self.radar(cluster_label)
 
 
 if __name__ == "__main__":
+    pertinent = [1490281, 13290776, 20163348, 20200041, 20561854, 20727324, 21046542, 21497331, 69813934, 100064590,
+                 169985247, 300240190, 336948609, 359489151, 360340862, 800115293]
     clust = Clusterer()
-    clust.to_csv()
+
+    #clust.display_segmentation(1490281)
+
+    for my_id in pertinent:
+        clust.display_segmentation(my_id)
