@@ -183,51 +183,44 @@ def printFamilleMaxBought(data):
 
 def histNumberOfTicketByMonth(data,axarr):
     """histogram of x: month/ y : number of ticket"""
-    fig = plt.figure()
     month_union = data.groupby(['MOIS_VENTE'])
     if axarr is None:
+      fig = plt.figure()
       month_union['MOIS_VENTE'].hist(bins="auto")
-    else:
-      month_union['MOIS_VENTE'].hist(bins="auto",ax=axarr)
-
-    if axarr is None:
       plt.xticks(MOIS_TICKS_HIST, LABEL_MOIS)
       plt.suptitle('Nombre de produits achetés par Mois')
+      if PRINT_PDF is False:
+          plt.show()
+          plt.close()
+      return fig
     else:
+      month_union['MOIS_VENTE'].hist(bins="auto",ax=axarr)
       axarr.set_xticks(MOIS_TICKS_HIST)
       axarr.set_xticklabels(LABEL_MOIS, fontsize=9)
       axarr.title.set_text('Nombre de produits achetés par Mois')
-
-    if PRINT_PDF is False:
-        plt.show()
-        plt.close()
-
-    return fig
+      if PRINT_PDF is False:
+          plt.show()
+          plt.close()
 
 
 
 def histPricePayedByMonth(data,axarr):
     """histogram of x: sum of price of ticket/ y : number of ticket"""
-    fig = plt.figure()
     sums = data.groupby(['MOIS_VENTE'])
     if axarr is None:
-      sums['PRIX_NET'].sum().plot(kind='bar')
+        fig = plt.figure()
+        sums['PRIX_NET'].sum().plot(kind='bar')
+        plt.xticks(MOIS_TICKS, LABEL_MOIS)
+        plt.suptitle('Somme dépensé par Mois')
+        return fig
     else:
       sums['PRIX_NET'].sum().plot(kind='bar',ax=axarr)
-
-    if axarr is None:
-      plt.xticks(MOIS_TICKS, LABEL_MOIS)
-      plt.suptitle('Somme dépensé par Mois')
-    else:
       axarr.set_xticks(MOIS_TICKS)
       axarr.set_xticklabels(LABEL_MOIS, fontsize=10)
       axarr.title.set_text('Somme dépensé par Mois')
-
-    if PRINT_PDF is False:
-        plt.show()
-        plt.close()
-
-    return fig
+      if PRINT_PDF is False:
+          plt.show()
+          plt.close()
 
 def getEventRelatedToPricePayedByMonth(data):
 
@@ -328,8 +321,9 @@ def printData(data, clientId):
     # Histograms
     if OS_WINDOWS:
       subplot , axarr = plt.subplots(2,1)
-      histNumberOfTicketByMonth(data,axarr[1])
       histPricePayedByMonth(data,axarr[0])
+
+      histNumberOfTicketByMonth(data,axarr[1])
     else:
       figs.append(histNumberOfTicketByMonth(data,axarr))
       figs.append(histPricePayedByMonth(data,axarr))
