@@ -187,6 +187,10 @@ def printFamilleMaxBought(data):
 
 def histNumberOfTicketByMonth(data,axarr):
     """histogram of x: month/ y : number of ticket"""
+
+    print("NUMBERRRRRRRRRRRRR")
+    print(data)
+
     month_union = data.groupby(['MOIS_VENTE'])
     if axarr is None:
       fig = plt.figure()
@@ -209,6 +213,7 @@ def histNumberOfTicketByMonth(data,axarr):
 
 
 def histPricePayedByMonth(data,axarr):
+    print("SUMMMMMMMMMMMMMMMMMM")
     print(data)
     """histogram of x: sum of price of ticket/ y : number of ticket"""
     sums = data.groupby(['MOIS_VENTE'])
@@ -217,8 +222,8 @@ def histPricePayedByMonth(data,axarr):
         result = sums['PRIX_NET'].sum()
         s1 = pd.Series([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
         for index, value in result.items():
-            s1[index] = value
-        s1.bar()
+            s1[index - 1] = value
+        s1.plot.bar()
         plt.xticks(MOIS_TICKS, LABEL_MOIS)
         plt.suptitle('Somme dépensé par Mois')
         return fig
