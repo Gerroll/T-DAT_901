@@ -280,7 +280,7 @@ class Clusterer:
         cluster = self.__filter_by_cluster_label(cluster_n)
 
         # df size
-        size = len(cluster)
+        size = len(cluster.index)
 
         # client proportion
         t_cli = len(cluster['CLI_ID'].unique())
@@ -301,17 +301,21 @@ class Clusterer:
             p = len(mois_cluster) / size
             m_proportions.append(self.__p2percent(p))
 
-        # price proportion
+        # mean number purchase
+        mean_number_purchase = round(size / t_cli, 2)
+
+        # mean expense
         sum_price = cluster['PRIX_NET'].sum()
         mean_price = round(sum_price / t_cli, 2)
 
-        # basket proportion
+        # mean basket
         n_basket = len(cluster['TICKET_ID'].unique())
         p = n_basket / t_cli
         mean_basket = round(p, 2)
 
         target = {
             'client_proportion': c_proportion,
+            'mean_number_purchase': mean_number_purchase,
             'mean_expense': mean_price,
             'mean_basket': mean_basket,
             'proportion_purchase_by_family': f_proportions,
@@ -326,11 +330,6 @@ class Clusterer:
         list_id = set(cluster['CLI_ID'])
         return self.__raw_df[self.__raw_df['CLI_ID'].isin(list_id)]
 
-    def __special_print(self, target):
-        for key, value in target.items():
-            print(key)
-            print(value)
-
     def to_csv(self):
         if segmentation_result_file.is_file():
             self.__cluster_analysis = pd.read_csv(segmentation_result_file)
@@ -344,12 +343,11 @@ class Clusterer:
         mm = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
              "novembre", "décembre"]
         mois_col = [m + " (%)" for m in mm]
-        columns = ['cluster', 'proportion de la clientèle (%)', 'moyenne des dépenses', 'taille moyenne du panier'] + familles_col + mois_col
+        columns = ['cluster', 'proportion de la clientèle (%)', 'nombre de produit acheté', 'moyenne des dépenses', 'taille moyenne du panier'] + familles_col + mois_col
         for i in cluster_labels:
-            print(i)
             desc = self.get_description(i)
             row = []
-            row.extend([str(i), desc['client_proportion'], desc['mean_expense'], desc['mean_basket']])
+            row.extend([str(i), desc['client_proportion'], desc['mean_number_purchase'], desc['mean_expense'], desc['mean_basket']])
             row.extend(desc['proportion_purchase_by_family'])
             row.extend(desc['proportion_purchase_by_month'])
             rows.append(row)
@@ -374,8 +372,8 @@ class Clusterer:
     def radar_chart_one_data(self, cluster_label):
         return list(self.__cluster_analysis.iloc[cluster_label])
 
-    def __remarquable_general(self, remarquables, type_t):
-        description = f"Caractéristiques remarquables {type_t}:\n"
+    def __remarquable_description(self, remarquables, type_t):
+        description = f"Caractéristiques remarquables {type_t.upper()}:\n\n"
         up = []
         down = []
 
@@ -395,7 +393,16 @@ class Clusterer:
             description += f" BASSES:\n"
             for cat in down:
                 description += f"     -{cat[0]}: {cat[1]}\n"
-        return description
+        if len(up) + len(down) != 0:
+            description += "\n"
+
+        return description + "\n"
+
+    def reject_outliers(self, data, m=2.0):
+        d = np.abs(data - np.median(data))
+        mdev = np.median(d)
+        s = d / mdev if mdev else 0.
+        return data[s < m]
 
     def display_radar(self, data, remarquables, cluster_label):
 
@@ -407,10 +414,12 @@ class Clusterer:
              "novembre", "décembre"]
         ]
 
-        clust_prop = data[0][3][2]
         clust_size = len(self.__data[self.__data["cluster"] == cluster_label])
-        clust_expense = data[0][3][3]
-        clust_basket = data[0][3][4]
+
+        clust_prop = data[0][3][2]
+        clust_n_purchase = data[0][3][3]
+        clust_expense = data[0][3][4]
+        clust_basket = data[0][3][5]
 
         plt.figure().suptitle(f"Cluster {cluster_label}")
 
@@ -418,18 +427,20 @@ class Clusterer:
         plt.xticks([])
         plt.yticks([])
 
-        plt.text(0.04, 0.95, f"Taille: {clust_size} ({clust_prop}% de la clientelle)", size=10)
-        plt.text(0.04, 0.9, f"Dépense moyenne: {clust_expense}", size=10)
-        plt.text(0.04, 0.85, f"Panier moyen: {clust_basket}", size=10)
+        main_description = f"Taille: {clust_size} ({clust_prop}% de la clientelle)\nNombre de produit acheté moyenne: {clust_n_purchase}\nDépense moyenne: {clust_expense}\nPanier moyen: {clust_basket}"
+        plt.text(0.03, 0.92, main_description, size=10, weight='bold')
 
-        plt.text(0.04, 0.7, self.__remarquable_general(remarquables[0], "générales"), size=10)
-        plt.text(0.04, 0.4, self.__remarquable_general(remarquables[1], "familles"), size=10)
-        plt.text(0.04, 0, self.__remarquable_general(remarquables[2], "mois"), size=10)
+        remarquables_description = self.__remarquable_description(remarquables[0], "générales")
+        remarquables_description += self.__remarquable_description(remarquables[1], "familles")
+        remarquables_description += self.__remarquable_description(remarquables[2], "mois")
+
+        jump_line_count = remarquables_description.count("\n")
+        a = jump_line_count - 9
+        plt.text(0.03, 0.6 - a * 0.021, remarquables_description, size=10)
 
         for i in range(2):
             labels = categories_label[i]
             data_list = data[i + 1]
-
             N = len(labels)
 
             # What will be the angle of each axis in the plot? (we divide the plot / number of variable)
@@ -455,7 +466,7 @@ class Clusterer:
             i_pot_max = data_list[3].index(pot_max)
             other_max = data_list[1][i_pot_max]
             mmax = (pot_max + other_max) / 2
-            plt.ylim(0, mmax)
+            plt.ylim(0, mmax + 5)
 
             # ------- PART 2: Add plots
 
@@ -490,40 +501,49 @@ class Clusterer:
 
     def __compute_remarquable(self, cluster_label):
         remarquables = [[], [], []]
-        i = 0
+        i = -1
+
         for column in self.__cluster_analysis:
+            i = i + 1
             serie = sorted(list(self.__cluster_analysis[column]))
             clust_value = self.__cluster_analysis[column].iloc[cluster_label]
+
+            npa = np.asarray(self.__cluster_analysis[column])
+            remaining = self.reject_outliers(npa)
+            diff = list(np.setdiff1d(npa, remaining))
+            if clust_value not in diff:
+                continue
             rank = 15 - serie.index(clust_value)
-            if rank <= 3 or rank >= 13:
-                if i in [2, 3, 4]:
-                    remarquables[0].append(
-                        {
-                            "feature": column,
-                            "value": clust_value,
-                            "rank": rank,
-                            "ext": 1 if rank <= 3 else 0 if rank >= 13 else -1
-                        }
-                    )
-                if 5 <= i <= 11:
-                    remarquables[1].append(
-                        {
-                            "feature": column,
-                            "value": clust_value,
-                            "rank": rank,
-                            "ext": 1 if rank <= 3 else 0 if rank >= 13 else -1
-                        }
-                    )
-                if i >= 14:
-                    remarquables[2].append(
-                        {
-                            "feature": column,
-                            "value": clust_value,
-                            "rank": rank,
-                            "ext": 1 if rank <= 3 else 0 if rank >= 13 else -1
-                        }
-                    )
-            i = i + 1
+            if 5 <= rank <= 11:
+                continue
+
+            if i in [2, 3, 4, 5]:
+                remarquables[0].append(
+                    {
+                        "feature": column,
+                        "value": clust_value,
+                        "rank": rank,
+                        "ext": 1 if rank in [0, 1, 2, 3, 4] else 0
+                    }
+                )
+            if 6 <= i <= 13:
+                remarquables[1].append(
+                    {
+                        "feature": column,
+                        "value": clust_value,
+                        "rank": rank,
+                        "ext": 1 if rank in [0, 1, 2, 3, 4] else 0
+                    }
+                )
+            if i >= 16:
+                remarquables[2].append(
+                    {
+                        "feature": column,
+                        "value": clust_value,
+                        "rank": rank,
+                        "ext": 1 if rank in [0, 1, 2, 3, 4] else 0
+                    }
+                )
         return remarquables
 
     def radar(self, cluster_label):
@@ -533,9 +553,9 @@ class Clusterer:
         mean_data = self.radar_chart_all_data("mean")
         one_data = self.radar_chart_one_data(cluster_label)
         data = [
-            [min_data[:5], max_data[:5], mean_data[:5], one_data[:5]],
-            [min_data[5:12], max_data[5:12], mean_data[5:12], one_data[5:12]],
-            [min_data[14:], max_data[14:], mean_data[14:], one_data[14:]]
+            [min_data[:6], max_data[:6], mean_data[:6], one_data[:6]],
+            [min_data[6:13], max_data[6:13], mean_data[6:13], one_data[6:13]],
+            [min_data[15:], max_data[15:], mean_data[15:], one_data[15:]]
         ]
 
         self.display_radar(data, remarquables, cluster_label)
