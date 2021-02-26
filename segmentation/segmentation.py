@@ -28,7 +28,7 @@ proc_data_dir = project_dir.joinpath("assets").joinpath('processed')
 segmentation_proc_file = proc_data_dir.joinpath("segmentation_proc.pkl")
 segmentation_cluster_file = proc_data_dir.joinpath("segmentation_cluster.pkl")
 segmentation_cluster_middle_file = proc_data_dir.joinpath("segmentation_cluster_middle.pkl")
-segmentation_result_file = proc_data_dir.joinpath("segmentation_result.csv")
+segmentation_result_file = proc_data_dir.joinpath("segmentation_result.pkl")
 # path to data source
 data_dir = project_dir.joinpath("data")
 kado_file = data_dir.joinpath("KaDo.csv")
@@ -277,7 +277,12 @@ class Clusterer:
         return round(p * 100, 2)
 
     def get_description(self, cluster_n):
-        cluster = self.__filter_by_cluster_label(cluster_n)
+        if cluster_n == 7:
+            cluster = self.__filter_by_cluster_label(7)
+            cluster2 = self.__filter_by_cluster_label(14)
+            cluster = cluster.append(cluster2, ignore_index=True)
+        else:
+            cluster = self.__filter_by_cluster_label(cluster_n)
 
         # df size
         size = len(cluster.index)
@@ -321,7 +326,6 @@ class Clusterer:
             'proportion_purchase_by_family': f_proportions,
             'proportion_purchase_by_month': m_proportions
         }
-        print(json.dumps(target, indent=2))
         return target
 
     def __filter_by_cluster_label(self, cluster_n):
@@ -330,30 +334,29 @@ class Clusterer:
         list_id = set(cluster['CLI_ID'])
         return self.__raw_df[self.__raw_df['CLI_ID'].isin(list_id)]
 
-    def to_csv(self):
+    def to_pkl(self):
         if segmentation_result_file.is_file():
-            self.__cluster_analysis = pd.read_csv(segmentation_result_file)
+            self.__cluster_analysis = pd.read_pickle(segmentation_result_file)
             return
         cluster_labels = sorted(list(self.__data['cluster'].unique()))
-        print(f"cluster labels: {cluster_labels}")
-        print(f"Proportion of clients who did not find a cluster: {len(self.__data[self.__data['cluster'] == -1])} / {len(self.__data)}")
         cluster_labels.remove(-1)
+        cluster_labels.remove(14)
         rows = []
         familles_col = [f + " (%)" for f in familles]
         mm = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
              "novembre", "décembre"]
         mois_col = [m + " (%)" for m in mm]
-        columns = ['cluster', 'proportion de la clientèle (%)', 'nombre de produit acheté', 'moyenne des dépenses', 'taille moyenne du panier'] + familles_col + mois_col
+        columns = ['cluster', 'proportion de la clientèle (%)', 'nombre de produit acheté en moyenne', 'dépense en moyenne', 'taille du panier en moyenne'] + familles_col + mois_col
         for i in cluster_labels:
             desc = self.get_description(i)
             row = []
-            row.extend([str(i), desc['client_proportion'], desc['mean_number_purchase'], desc['mean_expense'], desc['mean_basket']])
+            row.extend([i, desc['client_proportion'], desc['mean_number_purchase'], desc['mean_expense'], desc['mean_basket']])
             row.extend(desc['proportion_purchase_by_family'])
             row.extend(desc['proportion_purchase_by_month'])
             rows.append(row)
 
         self.__cluster_analysis = pd.DataFrame(np.array(rows), columns=columns)
-        self.__cluster_analysis.to_csv(segmentation_result_file)
+        self.__cluster_analysis.to_pickle(segmentation_result_file)
 
     def radar_chart_all_data(self, type_t):
         analysis = []
@@ -405,9 +408,6 @@ class Clusterer:
         return data[s < m]
 
     def display_radar(self, data, remarquables, cluster_label):
-
-        # ------- PART 1: Create background
-
         categories_label = [
             ["hygiene", "soins du visage", "parfumage", "soins du corps", "maquillage", "capillaires", "solaires"],
             ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
@@ -416,10 +416,10 @@ class Clusterer:
 
         clust_size = len(self.__data[self.__data["cluster"] == cluster_label])
 
-        clust_prop = data[0][3][2]
-        clust_n_purchase = data[0][3][3]
-        clust_expense = data[0][3][4]
-        clust_basket = data[0][3][5]
+        clust_prop = data[0][3][1]
+        clust_n_purchase = data[0][3][2]
+        clust_expense = data[0][3][3]
+        clust_basket = data[0][3][4]
 
         plt.figure().suptitle(f"Cluster {cluster_label}")
 
@@ -427,8 +427,8 @@ class Clusterer:
         plt.xticks([])
         plt.yticks([])
 
-        main_description = f"Taille: {clust_size} ({clust_prop}% de la clientelle)\nNombre de produit acheté moyenne: {clust_n_purchase}\nDépense moyenne: {clust_expense}\nPanier moyen: {clust_basket}"
-        plt.text(0.03, 0.92, main_description, size=10, weight='bold')
+        main_description = f"Nombre de client: {clust_size} ({clust_prop}% de la clientelle)\nNombre de produit acheté en moyenne: {clust_n_purchase}\nDépense en moyenne: {clust_expense}\nTaille du panier en moyenne: {clust_basket}"
+        plt.text(0.03, 0.88, main_description, size=10, weight='bold')
 
         remarquables_description = self.__remarquable_description(remarquables[0], "générales")
         remarquables_description += self.__remarquable_description(remarquables[1], "familles")
@@ -467,8 +467,6 @@ class Clusterer:
             other_max = data_list[1][i_pot_max]
             mmax = (pot_max + other_max) / 2
             plt.ylim(0, mmax + 5)
-
-            # ------- PART 2: Add plots
 
             # Plot each individual = each line of the data
             # I don't do a loop, because plotting more than 3 groups makes the chart unreadable
@@ -553,24 +551,26 @@ class Clusterer:
         mean_data = self.radar_chart_all_data("mean")
         one_data = self.radar_chart_one_data(cluster_label)
         data = [
-            [min_data[:6], max_data[:6], mean_data[:6], one_data[:6]],
-            [min_data[6:13], max_data[6:13], mean_data[6:13], one_data[6:13]],
-            [min_data[15:], max_data[15:], mean_data[15:], one_data[15:]]
+            [min_data[:5], max_data[:5], mean_data[:5], one_data[:5]],
+            [min_data[5:12], max_data[5:12], mean_data[5:12], one_data[5:12]],
+            [min_data[14:], max_data[14:], mean_data[14:], one_data[14:]]
         ]
 
         self.display_radar(data, remarquables, cluster_label)
 
     def display_segmentation(self, client_id):
         # the cluster of the client
-        self.to_csv()
+        self.to_pkl()
         list_label = list(self.__data[self.__data["CLI_ID"] == client_id]["cluster"])
         if len(list_label) == 0:
-            print("Client's ID doesn't exist")
+            print(f"Client's ID {client_id} doesn't exist")
             return
         cluster_label = list_label[0]
         if cluster_label == -1:
-            print("Client's ID can't find a pertinent segmentation")
+            print(f"Client's ID {client_id} can't find a pertinent segmentation")
             return
+        if cluster_label == 14:
+            cluster_label = 7
 
         self.radar(cluster_label)
 
@@ -579,8 +579,6 @@ if __name__ == "__main__":
     pertinent = [1490281, 13290776, 20163348, 20200041, 20561854, 20727324, 21046542, 21497331, 69813934, 100064590,
                  169985247, 300240190, 336948609, 359489151, 360340862, 800115293]
     clust = Clusterer()
-
-    #clust.display_segmentation(1490281)
 
     for my_id in pertinent:
         clust.display_segmentation(my_id)
