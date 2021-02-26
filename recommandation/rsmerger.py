@@ -28,7 +28,7 @@ class Merger:
             r = self.rs3.get_recommendation(cli_id)
         elif rt == RecommendationType.ALL:
             r = self.get_merged_recommendation(cli_id)
-        print(dumps(r, indent=4))
+        # print(dumps(r, indent=4))
         return r
 
     def get_merged_recommendation(self, cli_id):
