@@ -1,64 +1,94 @@
-from datetime import time
 from textwrap import dedent
 import pandas as pd
+from json import dumps
 
-from extra_description import Clusterer, Clusterer2
+from statistical_report import printData
+from segmentation import segmentation
 from recommandation import rsmerger
-from statistical_report import printData, getCliData
 
 N_ROWS = None
-DEMO_IDS = [1490281, 13290776, 20163348, 20200041, 20561854, 20727324, 20791601, 21046542, 21239163,
+DEMO_IDS = [13290776, 20163348, 20200041, 20561854, 20727324, 20791601, 21046542, 21239163,
             21351166, 21497331, 21504227, 21514622, 69813934, 71891681, 85057203]
 
-def initDataFrame():
-    """Get a dataframe with nrows entries """
-    if N_ROWS == 0 or N_ROWS == None:
-      return pd.read_csv('./data/KaDo.csv', low_memory=False)  # the whole dataset
-    else:
-      return pd.read_csv('./data/KaDo.csv', low_memory=False, nrows=N_ROWS)# limited rows dataset
 
-#def recommend(metadata, clientId):
-#    recomandation = getRecomandation(clientId, metadata)
- #   print(recomandation)
+def run():
+    while True:
+        print((dedent("""
+           What is your client ID ? (Press 'enter' to get default id)\
+        """)))
+        clientId = input()
 
+        if clientId == "":
+            clientId = "13290776"
 
-#def printStatisticalReport(metadata, clientId):
-    ###
-    ### For performance test remove the commentary
-    # debut = time.time()
+        try:
+            clientId = int(clientId)
+        except ValueError:
+            print(f"{clientId} is not a valid ID.")
+            continue
+        if clientId in list_id:
+            break
 
-    #whole dataset
-    #printData(metadata, clientId)
+    print(f"Your id : '{clientId}'")
+    print("Please Wait ...")
 
+    printData(raw_df, clientId)
+    clusterer.display_segmentation(clientId)
 
-    # Only with the best client
-    #printData(bestCliForTest(metadata))
+    while True:
+        print(dedent("""
+            Choose your recommendation system:
+            1 - clusterbased1
+            2 - clusterbased2
+            3 - userbased
+            4 - ALL
+        """))
+        rs = input()
 
-    # With the specified client id
-    #printData(getCliData(metadata, clientId))
+        try:
+            rs = int(rs)
+        except ValueError:
+            print(f"{rs} is not a valid choice.")
+            continue
+        if rs in [1, 2, 3, 4]:
+            break
 
-    # print('Performance test print Data  : ', time.time() - debut)
-def initClusters(raw_data):
-    """Initialisation of both clusters"""
-    return Clusterer(raw_data), Clusterer2(raw_data)
+    recommendations = {}
+    if rs == 1:
+        recommendations = merger.get_recommendation(int(clientId), rsmerger.RecommendationType.CLUSTER_BASED_1)
+    elif rs == 2:
+        recommendations = merger.get_recommendation(int(clientId), rsmerger.RecommendationType.CLUSTER_BASED_2)
+    elif rs == 3:
+        recommendations = merger.get_recommendation(int(clientId), rsmerger.RecommendationType.USER_BASED)
+    elif rs == 4:
+        recommendations = merger.get_recommendation(int(clientId), rsmerger.RecommendationType.ALL)
+
+    print("")
+    print(f"The article recommend for the client {clientId} is:")
+    explanation = recommendations["explanation"]
+    print(explanation)
+
 
 if __name__ == "__main__":
     # load metadatas from dataframe
-    metadata = initDataFrame()
+    raw_df = pd.read_csv('./data/KaDo.csv')
+    list_id = list(raw_df['CLI_ID'].unique())
+    clusterer = segmentation.Clusterer()
     merger = rsmerger.Merger()
 
     # ask for the client ID
     print(dedent("""
            This application will give you a recomandation and a statistical report base on your client ID.
-           What is your client ID ? (Press 'enter' to get default id)\
        """))
-    clientId = input()
-    if clientId == "":
-        clientId = 1490281
-    print(f"Your id : '{clientId}'")
-    print("Please Wait ...")
-    print()
+    run()
 
-    merger.get_recommendation(int(clientId), "ALL")
-    printData(metadata, clientId)
+    while True:
+        print(dedent("""
+            Make another recommendation ? y/n
+        """))
 
+        resp = input()
+        if resp == 'y':
+            run()
+        elif resp == 'n':
+            break

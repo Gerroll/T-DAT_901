@@ -1,4 +1,4 @@
-from recommandation.systems import RSClusterBased1, RSClusterBased2, RSUserBased
+from .systems import RSClusterBased1, RSClusterBased2, RSUserBased
 from enum import Enum
 from json import dumps
 from datetime import datetime
@@ -17,7 +17,7 @@ class Merger:
         self.rs2 = RSClusterBased1()
         self.rs3 = RSClusterBased2()
 
-    def get_recommendation(self, cli_id: int, rt: RecommendationType):
+    def get_recommendation(self, cli_id: int, rt: RecommendationType, n=0):
         r = None
 
         if rt == RecommendationType.USER_BASED:
@@ -27,11 +27,10 @@ class Merger:
         elif rt == RecommendationType.CLUSTER_BASED_2:
             r = self.rs3.get_recommendation(cli_id)
         elif rt == RecommendationType.ALL:
-            r = self.get_merged_recommendation(cli_id)
-        # print(dumps(r, indent=4))
-        return r
+            return self.get_merged_recommendation(cli_id, n)
+        return r[n]
 
-    def get_merged_recommendation(self, cli_id):
+    def get_merged_recommendation(self, cli_id, n):
         print(f"Start computing recommendation system 1 (user-based) at: {datetime.now()}")
         r1 = self.rs1.get_recommendation(cli_id)
         print(f"Start computing recommendation system 2 (cluster-based-1) at: {datetime.now()}")
@@ -58,12 +57,32 @@ class Merger:
         for label in score:
             score[label] = s1[label] + s2[label] + s3[label]
 
-        result = dict(sorted(score.items(), key=lambda x: x[1]))
+        result = list(sorted(score.items(), key=lambda x: x[1]))
+        libelle = result[n][0]
+        explanation = ""
+        for r in r1:
+            if r["LIBELLE"] == libelle:
+                explanation += "USER_BASED: " + r["explanation"] + "\n"
+                break
+        for r in r2:
+            if r["LIBELLE"] == libelle:
+                explanation += "CLUSTER_BASED1: " + r["explanation"] + "\n"
+                break
+        for r in r3:
+            if r["LIBELLE"] == libelle:
+                explanation += "CLUSTER_BASED2: " + r["explanation"]
+                break
         print(f"End computing at: {datetime.now()}")
-        return result
+        return {"LIBELLE": libelle, "explanation": explanation}
 
 
 if __name__ == "__main__":
     merger = Merger()
-    #merger.get_recommendation(996899213, RecommendationType.ALL)
-    merger.get_recommendation(1490281, RecommendationType.ALL)
+    r = merger.get_recommendation(1490281, RecommendationType.ALL)
+    print(dumps(r, indent=4))
+    r = merger.get_recommendation(1490281, RecommendationType.CLUSTER_BASED_1)
+    print(dumps(r, indent=4))
+    r = merger.get_recommendation(1490281, RecommendationType.CLUSTER_BASED_2)
+    print(dumps(r, indent=4))
+    r = merger.get_recommendation(1490281, RecommendationType.USER_BASED)
+    print(dumps(r, indent=4))

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import datetime
 from matplotlib.backends.backend_pdf import PdfPages
 
-PDF_PATH = './res/statistical_report.pdf'
+PDF_PATH = './assets/result/statistical_report.pdf'
 
 class PDF():
   def __init__(self, clientId):

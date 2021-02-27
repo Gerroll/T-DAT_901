@@ -1,3 +1,3 @@
-from recommandation.systems import RSUserBased
-from recommandation.systems import RSClusterBased1
-from recommandation.systems import RSClusterBased2
+from .systems import RSUserBased
+from .systems import RSClusterBased1
+from .systems import RSClusterBased2

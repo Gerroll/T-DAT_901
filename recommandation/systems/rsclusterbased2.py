@@ -158,7 +158,7 @@ class RSClusterBased2:
                           f"type: {cluster_proportion} ."
             data["recommendations"][i]["explanation"] = explanation
 
-    def get_recommendation(self, user_id):
+    def get_recommendation(self, user_id=0):
         """
         Compute the n most recommended product (less if there is less)
         :param user_id: id of the user target of the recommendation

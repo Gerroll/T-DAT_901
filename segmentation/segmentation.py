@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
-import json
 from datetime import datetime
-from hdbscan import HDBSCAN
 from pathlib import Path
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
@@ -276,7 +274,7 @@ class Clusterer:
     def __p2percent(self, p):
         return round(p * 100, 2)
 
-    def get_description(self, cluster_n):
+    def __get_description(self, cluster_n):
         if cluster_n == 7:
             cluster = self.__filter_by_cluster_label(7)
             cluster2 = self.__filter_by_cluster_label(14)
@@ -334,7 +332,7 @@ class Clusterer:
         list_id = set(cluster['CLI_ID'])
         return self.__raw_df[self.__raw_df['CLI_ID'].isin(list_id)]
 
-    def to_pkl(self):
+    def __to_pkl(self):
         if segmentation_result_file.is_file():
             self.__cluster_analysis = pd.read_pickle(segmentation_result_file)
             return
@@ -348,7 +346,7 @@ class Clusterer:
         mois_col = [m + " (%)" for m in mm]
         columns = ['cluster', 'proportion de la clientèle (%)', 'nombre de produit acheté en moyenne', 'dépense en moyenne', 'taille du panier en moyenne'] + familles_col + mois_col
         for i in cluster_labels:
-            desc = self.get_description(i)
+            desc = self.__get_description(i)
             row = []
             row.extend([i, desc['client_proportion'], desc['mean_number_purchase'], desc['mean_expense'], desc['mean_basket']])
             row.extend(desc['proportion_purchase_by_family'])
@@ -358,7 +356,7 @@ class Clusterer:
         self.__cluster_analysis = pd.DataFrame(np.array(rows), columns=columns)
         self.__cluster_analysis.to_pickle(segmentation_result_file)
 
-    def radar_chart_all_data(self, type_t):
+    def __radar_chart_all_data(self, type_t):
         analysis = []
         for column in self.__cluster_analysis:
             serie = self.__cluster_analysis[column].astype(float)
@@ -372,7 +370,7 @@ class Clusterer:
             analysis.append(m)
         return analysis
 
-    def radar_chart_one_data(self, cluster_label):
+    def __radar_chart_one_data(self, cluster_label):
         return list(self.__cluster_analysis.iloc[cluster_label])
 
     def __remarquable_description(self, remarquables, type_t):
@@ -401,13 +399,13 @@ class Clusterer:
 
         return description + "\n"
 
-    def reject_outliers(self, data, m=2.0):
+    def __reject_outliers(self, data, m=2.0):
         d = np.abs(data - np.median(data))
         mdev = np.median(d)
         s = d / mdev if mdev else 0.
         return data[s < m]
 
-    def display_radar(self, data, remarquables, cluster_label):
+    def __display_radar(self, data, remarquables, cluster_label):
         categories_label = [
             ["hygiene", "soins du visage", "parfumage", "soins du corps", "maquillage", "capillaires", "solaires"],
             ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
@@ -507,7 +505,7 @@ class Clusterer:
             clust_value = self.__cluster_analysis[column].iloc[cluster_label]
 
             npa = np.asarray(self.__cluster_analysis[column])
-            remaining = self.reject_outliers(npa)
+            remaining = self.__reject_outliers(npa)
             diff = list(np.setdiff1d(npa, remaining))
             if clust_value not in diff:
                 continue
@@ -544,23 +542,23 @@ class Clusterer:
                 )
         return remarquables
 
-    def radar(self, cluster_label):
+    def __radar(self, cluster_label):
         remarquables = self.__compute_remarquable(cluster_label)
-        min_data = self.radar_chart_all_data("min")
-        max_data = self.radar_chart_all_data("max")
-        mean_data = self.radar_chart_all_data("mean")
-        one_data = self.radar_chart_one_data(cluster_label)
+        min_data = self.__radar_chart_all_data("min")
+        max_data = self.__radar_chart_all_data("max")
+        mean_data = self.__radar_chart_all_data("mean")
+        one_data = self.__radar_chart_one_data(cluster_label)
         data = [
             [min_data[:5], max_data[:5], mean_data[:5], one_data[:5]],
             [min_data[5:12], max_data[5:12], mean_data[5:12], one_data[5:12]],
             [min_data[14:], max_data[14:], mean_data[14:], one_data[14:]]
         ]
 
-        self.display_radar(data, remarquables, cluster_label)
+        self.__display_radar(data, remarquables, cluster_label)
 
     def display_segmentation(self, client_id):
         # the cluster of the client
-        self.to_pkl()
+        self.__to_pkl()
         list_label = list(self.__data[self.__data["CLI_ID"] == client_id]["cluster"])
         if len(list_label) == 0:
             print(f"Client's ID {client_id} doesn't exist")
@@ -572,7 +570,7 @@ class Clusterer:
         if cluster_label == 14:
             cluster_label = 7
 
-        self.radar(cluster_label)
+        self.__radar(cluster_label)
 
 
 if __name__ == "__main__":
