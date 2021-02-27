@@ -5,7 +5,7 @@ from .pdf import PDF
 import sys
 
 
-PDF_PATH = './res/statistical_report.pdf'
+PDF_PATH = './assets/result/statistical_report.pdf'
 PRINT_PDF = True
 
 OS_WINDOWS = False

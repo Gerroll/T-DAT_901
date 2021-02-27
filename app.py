@@ -1,6 +1,5 @@
 from textwrap import dedent
 import pandas as pd
-from json import dumps
 
 from statistical_report import printData
 from segmentation import segmentation
