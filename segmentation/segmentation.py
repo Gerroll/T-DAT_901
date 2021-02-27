@@ -405,7 +405,7 @@ class Clusterer:
         s = d / mdev if mdev else 0.
         return data[s < m]
 
-    def __display_radar(self, data, remarquables, cluster_label):
+    def __display_radar(self, client_id, data, remarquables, cluster_label):
         categories_label = [
             ["hygiene", "soins du visage", "parfumage", "soins du corps", "maquillage", "capillaires", "solaires"],
             ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
@@ -419,7 +419,7 @@ class Clusterer:
         clust_expense = data[0][3][3]
         clust_basket = data[0][3][4]
 
-        plt.figure().suptitle(f"Cluster {cluster_label}")
+        plt.figure().suptitle(f"Profile du client {client_id}: Cluster {cluster_label}\nCaractéristique de ce profil:")
 
         plt.subplot(1, 2, 1)
         plt.xticks([])
@@ -542,7 +542,7 @@ class Clusterer:
                 )
         return remarquables
 
-    def __radar(self, cluster_label):
+    def __radar(self, client_id, cluster_label):
         remarquables = self.__compute_remarquable(cluster_label)
         min_data = self.__radar_chart_all_data("min")
         max_data = self.__radar_chart_all_data("max")
@@ -554,7 +554,7 @@ class Clusterer:
             [min_data[14:], max_data[14:], mean_data[14:], one_data[14:]]
         ]
 
-        self.__display_radar(data, remarquables, cluster_label)
+        self.__display_radar(client_id, data, remarquables, cluster_label)
 
     def display_segmentation(self, client_id):
         # the cluster of the client
@@ -570,7 +570,7 @@ class Clusterer:
         if cluster_label == 14:
             cluster_label = 7
 
-        self.__radar(cluster_label)
+        self.__radar(client_id, cluster_label)
 
 
 if __name__ == "__main__":

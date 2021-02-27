@@ -53,6 +53,7 @@ def run():
         if rs in [1, 2, 3, 4]:
             break
 
+    print("Start computing recommendation...")
     recommendations = {}
     if rs == 1:
         recommendations = merger.get_recommendation(int(clientId), rsmerger.RecommendationType.CLUSTER_BASED_1)
@@ -64,7 +65,7 @@ def run():
         recommendations = merger.get_recommendation(int(clientId), rsmerger.RecommendationType.ALL)
 
     print("")
-    print(f"The article recommend for the client {clientId} is:")
+    print(f"The item recommended for the client {clientId} is:")
     explanation = recommendations["explanation"]
     print(explanation)
 
@@ -83,7 +84,7 @@ if __name__ == "__main__":
 
     # ask for the client ID
     print(dedent("""
-           This application will give you a recomandation and a statistical report base on your client ID.
+           This application will give you a statistical report, a customer's profile and a recommendation for the client's ID given.
        """))
     run()
 
