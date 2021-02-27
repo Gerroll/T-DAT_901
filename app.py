@@ -1,5 +1,6 @@
 from textwrap import dedent
 import pandas as pd
+import sys
 
 from statistical_report import printData
 from segmentation import segmentation
@@ -70,7 +71,12 @@ def run():
 
 if __name__ == "__main__":
     # load metadatas from dataframe
-    raw_df = pd.read_csv('./data/KaDo.csv')
+    try:
+        raw_df = pd.read_csv('./data/KaDo.csv')
+    except FileNotFoundError:
+        print("INFO: You must add KaDo.csv file to ./data folder")
+        sys.exit(0)
+
     list_id = list(raw_df['CLI_ID'].unique())
     clusterer = segmentation.Clusterer()
     merger = rsmerger.Merger()

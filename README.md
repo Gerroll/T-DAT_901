@@ -3,7 +3,7 @@
 
 # Init
 
-`Récupérer "KaDo.csv" sur gandalf, à mettre dans le dossier assets/resource`
+`Récupérer "KaDo.csv" sur gandalf, à mettre dans le dossier ./data
 
 ##Description de la data
 ####Colonnes du CSV 
